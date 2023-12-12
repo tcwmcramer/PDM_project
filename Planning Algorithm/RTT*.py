@@ -1,86 +1,324 @@
+'''
+MIT License
+Copyright (c) 2019 Fanjin Zeng
+This work is licensed under the terms of the MIT license, see <https://opensource.org/licenses/MIT>.
+'''
+
 import numpy as np
+from random import random
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
+from matplotlib import collections  as mc
+from collections import deque
 
-class Node:
-    def __init__(self, position):
-        self.position = np.array(position)
-        self.parent = None
-        self.cost = 0.0
+class Line():
+    ''' Define line '''
+    def __init__(self, p0, p1):
+        self.p = np.array(p0)
+        self.dirn = np.array(p1) - np.array(p0)
+        self.dist = np.linalg.norm(self.dirn)
+        self.dirn /= self.dist # normalize
 
-def distance(node1, node2):
-    return np.linalg.norm(node1.position - node2.position)
+    def path(self, t):
+        return self.p + t * self.dirn
 
-def random_sample(bounds):
-    return [np.random.uniform(bounds[i][0], bounds[i][1]) for i in range(3)]
 
-def nearest_neighbor(tree, sample):
-    distances = [distance(node, sample) for node in tree]
-    return tree[np.argmin(distances)]
+def Intersection(line, center, radius):
+    ''' Check line-sphere (circle) intersection '''
+    a = np.dot(line.dirn, line.dirn)
+    b = 2 * np.dot(line.dirn, line.p - center)
+    c = np.dot(line.p - center, line.p - center) - radius * radius
 
-def steer(from_node, to_node, max_distance):
-    d = distance(from_node, to_node)
-    if d < max_distance:
-        return to_node.position
-    else:
-        direction = (to_node.position - from_node.position) / d
-        return from_node.position + direction * max_distance
+    discriminant = b * b - 4 * a * c
+    if discriminant < 0:
+        return False
 
-def is_collision_free(from_point, to_point):
-    # Add your collision checking logic here
+    t1 = (-b + np.sqrt(discriminant)) / (2 * a);
+    t2 = (-b - np.sqrt(discriminant)) / (2 * a);
+
+    if (t1 < 0 and t2 < 0) or (t1 > line.dist and t2 > line.dist):
+        return False
+
     return True
 
-def rrt_star(start, goal, bounds, max_iter, max_distance):
-    tree = [start]
 
-    for _ in range(max_iter):
-        sample = Node(random_sample(bounds))
-        nearest = nearest_neighbor(tree, sample)
 
-        new_node_position = steer(nearest, sample, max_distance)
-        new_node = Node(new_node_position)
+def distance(x, y):
+    return np.linalg.norm(np.array(x) - np.array(y))
 
-        if is_collision_free(nearest.position, new_node.position):
-            near_nodes = [node for node in tree if distance(node, new_node) < max_distance]
 
-            # Connect to the nearest neighbor with minimum cost
-            min_cost_node = min(near_nodes, key=lambda x: x.cost + distance(x, new_node))
-            new_node.parent = min_cost_node
-            new_node.cost = min_cost_node.cost + distance(min_cost_node, new_node)
+def isInObstacle(vex, obstacles, radius):
+    for obs in obstacles:
+        if distance(obs, vex) < radius:
+            return True
+    return False
 
-            # Rewire the tree
-            for node in near_nodes:
-                if node.cost > new_node.cost + distance(node, new_node) and \
-                   is_collision_free(node.position, new_node.position):
-                    node.parent = new_node
-                    node.cost = new_node.cost + distance(node, new_node)
 
-            tree.append(new_node)
+def isThruObstacle(line, obstacles, radius):
+    for obs in obstacles:
+        if Intersection(line, obs, radius):
+            return True
+    return False
 
-    return tree
 
-def plot_tree(tree, goal):
-    fig = plt.figure()
-    ax = fig.add_subplot(111, projection='3d')
+def nearest(G, vex, obstacles, radius):
+    Nvex = None
+    Nidx = None
+    minDist = float("inf")
 
-    for node in tree:
-        if node.parent:
-            ax.plot([node.parent.position[0], node.position[0]],
-                    [node.parent.position[1], node.position[1]],
-                    [node.parent.position[2], node.position[2]], color='black')
+    for idx, v in enumerate(G.vertices):
+        line = Line(v, vex)
+        if isThruObstacle(line, obstacles, radius):
+            continue
 
-    ax.scatter(*goal.position, color='red', label='Goal')
-    ax.scatter(*start.position, color='green', label='Start')
+        dist = distance(v, vex)
+        if dist < minDist:
+            minDist = dist
+            Nidx = idx
+            Nvex = v
 
-    plt.legend()
+    return Nvex, Nidx
+
+
+def newVertex(randvex, nearvex, stepSize):
+    dirn = np.array(randvex) - np.array(nearvex)
+    length = np.linalg.norm(dirn)
+    dirn = (dirn / length) * min (stepSize, length)
+
+    newvex = (nearvex[0]+dirn[0], nearvex[1]+dirn[1])
+    return newvex
+
+
+def window(startpos, endpos):
+    ''' Define seach window - 2 times of start to end rectangle'''
+    width = endpos[0] - startpos[0]
+    height = endpos[1] - startpos[1]
+    winx = startpos[0] - (width / 2.)
+    winy = startpos[1] - (height / 2.)
+    return winx, winy, width, height
+
+
+def isInWindow(pos, winx, winy, width, height):
+    ''' Restrict new vertex insides search window'''
+    if winx < pos[0] < winx+width and \
+        winy < pos[1] < winy+height:
+        return True
+    else:
+        return False
+
+
+class Graph:
+    ''' Define graph '''
+    def __init__(self, startpos, endpos):
+        self.startpos = startpos
+        self.endpos = endpos
+
+        self.vertices = [startpos]
+        self.edges = []
+        self.success = False
+
+        self.vex2idx = {startpos:0}
+        self.neighbors = {0:[]}
+        self.distances = {0:0.}
+
+        self.sx = endpos[0] - startpos[0]
+        self.sy = endpos[1] - startpos[1]
+
+    def add_vex(self, pos):
+        try:
+            idx = self.vex2idx[pos]
+        except:
+            idx = len(self.vertices)
+            self.vertices.append(pos)
+            self.vex2idx[pos] = idx
+            self.neighbors[idx] = []
+        return idx
+
+    def add_edge(self, idx1, idx2, cost):
+        self.edges.append((idx1, idx2))
+        self.neighbors[idx1].append((idx2, cost))
+        self.neighbors[idx2].append((idx1, cost))
+
+
+    def randomPosition(self):
+        rx = random()
+        ry = random()
+
+        posx = self.startpos[0] - (self.sx / 2.) + rx * self.sx * 2
+        posy = self.startpos[1] - (self.sy / 2.) + ry * self.sy * 2
+        return posx, posy
+
+
+def RRT(startpos, endpos, obstacles, n_iter, radius, stepSize):
+    ''' RRT algorithm '''
+    G = Graph(startpos, endpos)
+
+    for _ in range(n_iter):
+        randvex = G.randomPosition()
+        if isInObstacle(randvex, obstacles, radius):
+            continue
+
+        nearvex, nearidx = nearest(G, randvex, obstacles, radius)
+        if nearvex is None:
+            continue
+
+        newvex = newVertex(randvex, nearvex, stepSize)
+
+        newidx = G.add_vex(newvex)
+        dist = distance(newvex, nearvex)
+        G.add_edge(newidx, nearidx, dist)
+
+        dist = distance(newvex, G.endpos)
+        if dist < 2 * radius:
+            endidx = G.add_vex(G.endpos)
+            G.add_edge(newidx, endidx, dist)
+            G.success = True
+            #print('success')
+            # break
+    return G
+
+
+def RRT_star(startpos, endpos, obstacles, n_iter, radius, stepSize):
+    ''' RRT star algorithm '''
+    G = Graph(startpos, endpos)
+
+    for _ in range(n_iter):
+        randvex = G.randomPosition()
+        if isInObstacle(randvex, obstacles, radius):
+            continue
+
+        nearvex, nearidx = nearest(G, randvex, obstacles, radius)
+        if nearvex is None:
+            continue
+
+        newvex = newVertex(randvex, nearvex, stepSize)
+
+        newidx = G.add_vex(newvex)
+        dist = distance(newvex, nearvex)
+        G.add_edge(newidx, nearidx, dist)
+        G.distances[newidx] = G.distances[nearidx] + dist
+
+        # update nearby vertices distance (if shorter)
+        for vex in G.vertices:
+            if vex == newvex:
+                continue
+
+            dist = distance(vex, newvex)
+            if dist > radius:
+                continue
+
+            line = Line(vex, newvex)
+            if isThruObstacle(line, obstacles, radius):
+                continue
+
+            idx = G.vex2idx[vex]
+            if G.distances[newidx] + dist < G.distances[idx]:
+                G.add_edge(idx, newidx, dist)
+                G.distances[idx] = G.distances[newidx] + dist
+
+        dist = distance(newvex, G.endpos)
+        if dist < 2 * radius:
+            endidx = G.add_vex(G.endpos)
+            G.add_edge(newidx, endidx, dist)
+            try:
+                G.distances[endidx] = min(G.distances[endidx], G.distances[newidx]+dist)
+            except:
+                G.distances[endidx] = G.distances[newidx]+dist
+
+            G.success = True
+            #print('success')
+            # break
+    return G
+
+
+
+def dijkstra(G):
+    '''
+    Dijkstra algorithm for finding shortest path from start position to end.
+    '''
+    srcIdx = G.vex2idx[G.startpos]
+    dstIdx = G.vex2idx[G.endpos]
+
+    # build dijkstra
+    nodes = list(G.neighbors.keys())
+    dist = {node: float('inf') for node in nodes}
+    prev = {node: None for node in nodes}
+    dist[srcIdx] = 0
+
+    while nodes:
+        curNode = min(nodes, key=lambda node: dist[node])
+        nodes.remove(curNode)
+        if dist[curNode] == float('inf'):
+            break
+
+        for neighbor, cost in G.neighbors[curNode]:
+            newCost = dist[curNode] + cost
+            if newCost < dist[neighbor]:
+                dist[neighbor] = newCost
+                prev[neighbor] = curNode
+
+    # retrieve path
+    path = deque()
+    curNode = dstIdx
+    while prev[curNode] is not None:
+        path.appendleft(G.vertices[curNode])
+        curNode = prev[curNode]
+    path.appendleft(G.vertices[curNode])
+    return list(path)
+
+
+
+def plot(G, obstacles, radius, path=None):
+    '''
+    Plot RRT, obstacles and shortest path
+    '''
+    px = [x for x, y in G.vertices]
+    py = [y for x, y in G.vertices]
+    fig, ax = plt.subplots()
+
+    for obs in obstacles:
+        circle = plt.Circle(obs, radius, color='red')
+        ax.add_artist(circle)
+
+    ax.scatter(px, py, c='cyan')
+    ax.scatter(G.startpos[0], G.startpos[1], c='black')
+    ax.scatter(G.endpos[0], G.endpos[1], c='black')
+
+    lines = [(G.vertices[edge[0]], G.vertices[edge[1]]) for edge in G.edges]
+    lc = mc.LineCollection(lines, colors='green', linewidths=2)
+    ax.add_collection(lc)
+
+    if path is not None:
+        paths = [(path[i], path[i+1]) for i in range(len(path)-1)]
+        lc2 = mc.LineCollection(paths, colors='blue', linewidths=3)
+        ax.add_collection(lc2)
+
+    ax.autoscale()
+    ax.margins(0.1)
     plt.show()
 
-# Example usage
-start = Node([0, 0, 0])
-goal = Node([10, 10, 10])
-bounds = [(0, 15), (0, 15), (0, 15)]
-max_iter = 500
-max_distance = 1.0
 
-tree = rrt_star(start, goal, bounds, max_iter, max_distance)
-plot_tree(tree, goal)
+def pathSearch(startpos, endpos, obstacles, n_iter, radius, stepSize):
+    G = RRT_star(startpos, endpos, obstacles, n_iter, radius, stepSize)
+    if G.success:
+        path = dijkstra(G)
+        # plot(G, obstacles, radius, path)
+        return path
+
+
+if __name__ == '__main__':
+    startpos = (0., 0.)
+    endpos = (5., 5.)
+    obstacles = [(1., 1.), (2., 2.)]
+    n_iter = 200
+    radius = 0.5
+    stepSize = 0.7
+
+    G = RRT_star(startpos, endpos, obstacles, n_iter, radius, stepSize)
+    # G = RRT(startpos, endpos, obstacles, n_iter, radius, stepSize)
+
+    if G.success:
+        path = dijkstra(G)
+        print(path)
+        plot(G, obstacles, radius, path)
+    else:
+        plot(G, obstacles, radius)
