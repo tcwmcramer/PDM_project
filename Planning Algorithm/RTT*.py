@@ -4,8 +4,6 @@ Copyright (c) 2019 Fanjin Zeng
 This work is licensed under the terms of the MIT license, see <https://opensource.org/licenses/MIT>.
 '''
 
-# little change so rebase can be committed
-
 import numpy as np
 from random import random
 import matplotlib.pyplot as plt
