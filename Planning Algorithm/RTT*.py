@@ -9,7 +9,9 @@ from random import random
 import matplotlib.pyplot as plt
 from matplotlib import collections  as mc
 from collections import deque
-
+from mpl_toolkits.mplot3d.art3d import Line3DCollection
+import matplotlib
+# %matplotlib qt
 class Line():
     ''' Define line '''
     def __init__(self, p0, p1):
@@ -84,7 +86,7 @@ def newVertex(randvex, nearvex, stepSize):
     length = np.linalg.norm(dirn)
     dirn = (dirn / length) * min (stepSize, length)
 
-    newvex = (nearvex[0]+dirn[0], nearvex[1]+dirn[1])
+    newvex = (nearvex[0]+dirn[0], nearvex[1]+dirn[1], nearvex[2]+dirn[2])
     return newvex
 
 
@@ -92,15 +94,18 @@ def window(startpos, endpos):
     ''' Define seach window - 2 times of start to end rectangle'''
     width = endpos[0] - startpos[0]
     height = endpos[1] - startpos[1]
+    depth = endpos[2] - startpos[2]
     winx = startpos[0] - (width / 2.)
     winy = startpos[1] - (height / 2.)
-    return winx, winy, width, height
+    winz = startpos[2] - (depth / 2.)
+    return winx, winy, winz, width, height, depth
 
 
-def isInWindow(pos, winx, winy, width, height):
+def isInWindow(pos, winx, winy, winz, width, height, depth):
     ''' Restrict new vertex insides search window'''
     if winx < pos[0] < winx+width and \
-        winy < pos[1] < winy+height:
+        winy < pos[1] < winy+height and \
+        winz < pos[2] < winz+depth:
         return True
     else:
         return False
@@ -122,6 +127,7 @@ class Graph:
 
         self.sx = endpos[0] - startpos[0]
         self.sy = endpos[1] - startpos[1]
+        self.sz = endpos[2] - startpos[2]
 
     def add_vex(self, pos):
         try:
@@ -142,10 +148,12 @@ class Graph:
     def randomPosition(self):
         rx = random()
         ry = random()
+        rz = random()
 
         posx = self.startpos[0] - (self.sx / 2.) + rx * self.sx * 2
         posy = self.startpos[1] - (self.sy / 2.) + ry * self.sy * 2
-        return posx, posy
+        posz = self.startpos[2] - (self.sz / 2.) + rz * self.sz * 2
+        return posx, posy, posz
 
 
 def RRT(startpos, endpos, obstacles, n_iter, radius, stepSize):
@@ -197,7 +205,7 @@ def RRT_star(startpos, endpos, obstacles, n_iter, radius, stepSize):
         G.add_edge(newidx, nearidx, dist)
         G.distances[newidx] = G.distances[nearidx] + dist
 
-        # update nearby vertices distance (if shorter)
+        # update nearby vertices distance (if shorter) #Check if the new vertex allows others to have a shorter distance
         for vex in G.vertices:
             if vex == newvex:
                 continue
@@ -271,25 +279,38 @@ def plot(G, obstacles, radius, path=None):
     '''
     Plot RRT, obstacles and shortest path
     '''
-    px = [x for x, y in G.vertices]
-    py = [y for x, y in G.vertices]
-    fig, ax = plt.subplots()
+    matplotlib.use('Qt5Agg')
+
+    px = [x for x, y, z in G.vertices]
+    py = [y for x, y, z in G.vertices]
+    pz = [z for x, y, z in G.vertices]
+
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
 
     for obs in obstacles:
-        circle = plt.Circle(obs, radius, color='red')
-        ax.add_artist(circle)
+        # Add a sphere to the environment
+        u = np.linspace(0, 2 * np.pi, 100)
+        v = np.linspace(0, np.pi, 100)
+        x = obs[0] + radius * np.outer(np.cos(u), np.sin(v))
+        y = obs[1] + radius * np.outer(np.sin(u), np.sin(v))
+        z = obs[2] + radius * np.outer(np.ones(np.size(u)), np.cos(v))
+        ax.plot_surface(x, y, z, color='b', alpha=0.2)
 
-    ax.scatter(px, py, c='cyan')
-    ax.scatter(G.startpos[0], G.startpos[1], c='black')
-    ax.scatter(G.endpos[0], G.endpos[1], c='black')
+    # Plot RRT vertices
+    ax.scatter(px, py, pz, c='cyan', marker='o')
+
+    # Plot start and end positions
+    ax.scatter(G.startpos[0], G.startpos[1], G.startpos[2], c='black', marker='s')
+    ax.scatter(G.endpos[0], G.endpos[1], G.endpos[2], c='black', marker='s')
 
     lines = [(G.vertices[edge[0]], G.vertices[edge[1]]) for edge in G.edges]
-    lc = mc.LineCollection(lines, colors='green', linewidths=2)
+    lc = Line3DCollection(lines, colors='green', linewidths=2)
     ax.add_collection(lc)
 
     if path is not None:
         paths = [(path[i], path[i+1]) for i in range(len(path)-1)]
-        lc2 = mc.LineCollection(paths, colors='blue', linewidths=3)
+        lc2 = Line3DCollection(paths, colors='blue', linewidths=3)
         ax.add_collection(lc2)
 
     ax.autoscale()
@@ -306,11 +327,11 @@ def pathSearch(startpos, endpos, obstacles, n_iter, radius, stepSize):
 
 
 if __name__ == '__main__':
-    startpos = (0., 0.)
-    endpos = (5., 5.)
-    obstacles = [(1., 1.), (2., 2.)]
+    startpos = (0., 0., 0.)
+    endpos = (5., 5., 5.)
+    obstacles = [(1., 1., 1.), (2., 2., 2.)]
     n_iter = 200
-    radius = 0.5
+    radius = 1.5
     stepSize = 0.7
 
     G = RRT_star(startpos, endpos, obstacles, n_iter, radius, stepSize)
