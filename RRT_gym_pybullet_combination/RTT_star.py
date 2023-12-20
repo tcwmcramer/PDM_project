@@ -11,7 +11,6 @@ from matplotlib import collections  as mc
 from collections import deque
 from mpl_toolkits.mplot3d.art3d import Line3DCollection
 import matplotlib
-from matplotlib.patches import Ellipse
 # %matplotlib qt
 class Line():
     ''' Define line '''
@@ -156,42 +155,6 @@ class Graph:
         posz = self.startpos[2] - (self.sz / 2.) + rz * self.sz * 2
         return posx, posy, posz
 
-    def randomPositionWithinInformedSet(self, center, x_axis, radius):
-        ''' Generate a random position within the informed set (ellipsoid) '''
-        # Generate random spherical coordinates
-        phi = 2 * np.pi * np.random.uniform(0, 1)
-        theta = np.arccos(2 * np.random.uniform(0, 1) - 1)
-
-        # Convert spherical coordinates to Cartesian coordinates
-        spherical_point = np.array([radius * np.sin(theta) * np.cos(phi),
-                                    radius * np.sin(theta) * np.sin(phi),
-                                    radius * np.cos(theta)])
-
-        # Rotate the spherical point to align with the x-axis direction
-        rotation_matrix = self.rotationMatrixFromVector(np.array([1, 0, 0]), x_axis)
-        rotated_point = np.dot(rotation_matrix, spherical_point)
-
-        # Translate the rotated point to the informed set center
-        position = rotated_point + center
-
-        return tuple(position)
-
-    def rotationMatrixFromVector(self, v1, v2):
-        ''' Calculate the rotation matrix that rotates v1 to v2 '''
-        axis = np.cross(v1, v2)
-        angle = np.arccos(np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2)))
-        return self.rotationMatrixFromAxisAngle(axis, angle)
-
-    def rotationMatrixFromAxisAngle(self, axis, angle):
-        ''' Calculate the rotation matrix from an axis and an angle '''
-        axis /= np.linalg.norm(axis)
-        a = np.cos(angle / 2.0)
-        b, c, d = -axis * np.sin(angle / 2.0)
-        return np.array([[a**2 + b**2 - c**2 - d**2, 2 * (b*c - a*d), 2 * (b*d + a*c)],
-                         [2 * (b*c + a*d), a**2 + c**2 - b**2 - d**2, 2 * (c*d - a*b)],
-                         [2 * (b*d - a*c), 2 * (c*d + a*b), a**2 + d**2 - b**2 - c**2]])
-
-
 
 def RRT(startpos, endpos, obstacles, n_iter, radius, stepSize):
     ''' RRT algorithm '''
@@ -274,98 +237,6 @@ def RRT_star(startpos, endpos, obstacles, n_iter, radius, stepSize):
             # break
     return G
 
-def initialize_informed_set(startpos, endpos, initial_radius_fraction=1):
-    # Compute the center of the ellipsoid as the midpoint between start and end
-    center = np.array([(start + end) / 2.0 for start, end in zip(startpos, endpos)])
-
-    # Compute the x-axis direction as the unit vector along the line from start to end
-    x_axis = np.array(endpos) - np.array(startpos)
-    x_axis /= np.linalg.norm(x_axis)
-
-    # Compute the initial radius based on the distance between start and end
-    initial_radius = initial_radius_fraction * np.linalg.norm(np.array(endpos) - np.array(startpos))
-
-    return center, x_axis, initial_radius
-def update_informed_set(graph, startpos, endpos):
-    # Retrieve the best path from the graph
-    best_path = dijkstra(graph)
-
-    # Compute the center of the informed set as the midpoint of the best path
-    center = np.array([(start + end) / 2.0 for start, end in zip(best_path[0], best_path[-1])])
-
-    # Compute the x-axis direction as the unit vector along the line from start to end of the best path
-    x_axis = np.array(best_path[-1]) - np.array(best_path[0])
-    x_axis /= np.linalg.norm(x_axis)
-
-    # Compute the radius based on the distance between the start and end of the best path
-    radius = np.linalg.norm(np.array(best_path[-1]) - np.array(best_path[0])) / 2.0
-
-    return center, x_axis, radius
-
-def RRT_star_informed(startpos, endpos, obstacles, n_iter, radius, stepSize, initial_radius_fraction=0.5):
-    ''' Informed RRT star algorithm with dynamic informed set adjustment '''
-    G = Graph(startpos, endpos)
-
-    # Initialize the informed set with a reasonable radius based on start and goal
-    informed_set_center, informed_set_x_axis, informed_set_radius = initialize_informed_set(startpos, endpos, initial_radius_fraction)
-
-    for _ in range(n_iter):
-        # Biased Sampling towards Informed Set
-        if random() < .8:  # Adjust the probability based on your problem
-            randvex = G.randomPositionWithinInformedSet(informed_set_center, informed_set_x_axis, informed_set_radius)
-        else:
-            randvex = G.randomPosition()
-
-        if isInObstacle(randvex, obstacles, radius):
-            continue
-
-        nearvex, nearidx = nearest(G, randvex, obstacles, radius)
-        if nearvex is None:
-            continue
-
-        newvex = newVertex(randvex, nearvex, stepSize)
-
-        newidx = G.add_vex(newvex)
-        dist = distance(newvex, nearvex)
-        G.add_edge(newidx, nearidx, dist)
-        G.distances[newidx] = G.distances[nearidx] + dist
-
-        # Tree Expansion: Bias towards Informed Set
-        for vex in G.vertices:
-            if vex == newvex:
-                continue
-
-            dist = distance(vex, newvex)
-            if dist > radius:
-                continue
-
-            line = Line(vex, newvex)
-            if isThruObstacle(line, obstacles, radius):
-                continue
-
-            idx = G.vex2idx[vex]
-            if G.distances[newidx] + dist < G.distances[idx]:
-                G.add_edge(idx, newidx, dist)
-                G.distances[idx] = G.distances[newidx] + dist
-
-        dist = distance(newvex, G.endpos)
-        if dist < 2 * radius:
-            endidx = G.add_vex(G.endpos)
-            G.add_edge(newidx, endidx, dist)
-            try:
-                G.distances[endidx] = min(G.distances[endidx], G.distances[newidx] + dist)
-            except:
-                G.distances[endidx] = G.distances[newidx] + dist
-
-            # Update Informed Set: Adjust to encompass the trajectory found
-            informed_set_center, informed_set_x_axis, informed_set_radius = update_informed_set(G, startpos, endpos)
-
-            last_ellipsoid = (informed_set_center, informed_set_x_axis, informed_set_radius)
-            print(last_ellipsoid)
-
-            G.success = True
-
-    return G
 
 
 def dijkstra(G):
@@ -406,7 +277,7 @@ def dijkstra(G):
 
 def plot(G, obstacles, radius, path=None):
     '''
-    Plot RRT, obstacles, shortest path, and the last ellipsoid
+    Plot RRT, obstacles and shortest path
     '''
     matplotlib.use('Qt5Agg')
 
@@ -442,8 +313,6 @@ def plot(G, obstacles, radius, path=None):
         lc2 = Line3DCollection(paths, colors='blue', linewidths=3)
         ax.add_collection(lc2)
 
-
-
     ax.autoscale()
     ax.margins(0.1)
     plt.show()
@@ -465,8 +334,7 @@ if __name__ == '__main__':
     radius = 1.5
     stepSize = 0.7
 
-    G = RRT_star_informed(startpos, endpos, obstacles, n_iter, radius, stepSize)
-    # G = RRT_star(startpos, endpos, obstacles, n_iter, radius, stepSize)
+    G = RRT_star(startpos, endpos, obstacles, n_iter, radius, stepSize)
     # G = RRT(startpos, endpos, obstacles, n_iter, radius, stepSize)
 
     if G.success:
