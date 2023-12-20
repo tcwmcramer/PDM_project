@@ -37,10 +37,12 @@ def process_urdf_files(directory_path):
         with open(urdf_file_path, 'r') as file:
             print(file.read())
 
-#TODO: lo
+#TODO: Loop through .urdf files and extract centers and radius.
 
 # Example usage:
 directory_path = '/path/to/your/urdf/files'
 process_urdf_files(directory_path)
 
 def obs_boundingbox():
+
+    return
