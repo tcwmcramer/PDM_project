@@ -11,7 +11,7 @@ from matplotlib import collections  as mc
 from collections import deque
 from mpl_toolkits.mplot3d.art3d import Line3DCollection
 import matplotlib
-# %matplotlib qt
+
 class Line():
     ''' Define line '''
     def __init__(self, p0, p1):
@@ -87,6 +87,7 @@ def newVertex(randvex, nearvex, stepSize):
     dirn = (dirn / length) * min (stepSize, length)
 
     newvex = (nearvex[0]+dirn[0], nearvex[1]+dirn[1], nearvex[2]+dirn[2])
+    newvex = (newvex[0], newvex[1], max(0, newvex[2]))
     return newvex
 
 

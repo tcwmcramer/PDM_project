@@ -36,7 +36,8 @@ def run(
         colab=DEFAULT_COLAB
     ):
     #### Initialize the simulation #############################
-    INIT_XYZS = np.array([[.5, 0, 1]])
+    INIT_XYZS = np.array([[0., 0., 1.]])
+    END_XYZS = np.array([[5., 5., 5.]])
     env = CtrlAviary(drone_model=drone,
                      num_drones=1,
                      initial_xyzs=INIT_XYZS,
@@ -46,7 +47,7 @@ def run(
                      ctrl_freq=control_freq_hz, #the frequency at which control commands are applied to the simulated drones or agents within the environment?
                      gui=gui,
                      record=record_video,
-                     obstacles=False
+                     obstacles=True
                      )
 
     #### Initialize the trajectories ###########################
