@@ -226,6 +226,10 @@ def RRT_star(startpos, endpos, obstacles, n_iter, radius, stepSize):
 
     for _ in range(n_iter):
         randvex = G.randomPosition()
+        ground_threshold = 0
+        # Ensure that the random position does not go below the ground
+        randvex = (randvex[0], randvex[1], max(randvex[2], ground_threshold))
+
         if isInObstacle(randvex, obstacles, radius):
             continue
 
@@ -311,12 +315,20 @@ def RRT_star_informed(startpos, endpos, obstacles, n_iter, radius, stepSize, ini
     # Initialize the informed set with a reasonable radius based on start and goal
     informed_set_center, informed_set_x_axis, informed_set_radius = initialize_informed_set(startpos, endpos, initial_radius_fraction)
 
+
     for _ in range(n_iter):
         # Biased Sampling towards Informed Set
         if random() < .8:  # Adjust the probability based on your problem
             randvex = G.randomPositionWithinInformedSet(informed_set_center, informed_set_x_axis, informed_set_radius)
+            ground_threshold = 0
+            # Ensure that the random position does not go below the ground
+            randvex = (randvex[0], randvex[1], max(randvex[2], ground_threshold))
+
         else:
             randvex = G.randomPosition()
+            ground_threshold = 0
+            # Ensure that the random position does not go below the ground
+            randvex = (randvex[0], randvex[1], max(randvex[2], ground_threshold))
 
         if isInObstacle(randvex, obstacles, radius):
             continue
