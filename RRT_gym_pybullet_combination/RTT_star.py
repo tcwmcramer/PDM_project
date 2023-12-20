@@ -280,7 +280,7 @@ def RRT_star(startpos, endpos, obstacles, n_iter, radius, stepSize):
 
 
 
-def initialize_informed_set(startpos, endpos, initial_radius_fraction=1):
+def initialize_informed_set(startpos, endpos, initial_radius_fraction=.7):
     # Compute the center of the ellipsoid as the midpoint between start and end
     center = np.array([(start + end) / 2.0 for start, end in zip(startpos, endpos)])
 
@@ -289,7 +289,7 @@ def initialize_informed_set(startpos, endpos, initial_radius_fraction=1):
     x_axis /= np.linalg.norm(x_axis)
 
     # Compute the initial radius based on the distance between start and end
-    initial_radius = initial_radius_fraction * np.linalg.norm(np.array(endpos) - np.array(startpos))
+    initial_radius = distance(startpos, endpos) * initial_radius_fraction
 
     return center, x_axis, initial_radius
 def update_informed_set(graph, startpos, endpos):
@@ -303,10 +303,14 @@ def update_informed_set(graph, startpos, endpos):
     x_axis = np.array(best_path[-1]) - np.array(best_path[0])
     x_axis /= np.linalg.norm(x_axis)
 
-    # Compute the radius based on the distance between the start and end of the best path
-    radius = np.linalg.norm(np.array(best_path[-1]) - np.array(best_path[0])) / 2.0
+    # Find points on the best path that are furthest away from the x-axis
+    max_distance_point = max(best_path, key=lambda point: np.abs(np.dot(x_axis, np.array(point) - center)))
 
-    return center, x_axis, radius
+    # Compute the radii for the y and z axes based on the furthest points
+    y_radius = distance(max_distance_point, center)
+    z_radius = distance(max_distance_point, center)
+
+    return center, x_axis, y_radius, z_radius
 
 def RRT_star_informed(startpos, endpos, obstacles, n_iter, radius, stepSize, initial_radius_fraction=0.5):
     ''' Informed RRT star algorithm with dynamic informed set adjustment '''
@@ -314,7 +318,7 @@ def RRT_star_informed(startpos, endpos, obstacles, n_iter, radius, stepSize, ini
 
     # Initialize the informed set with a reasonable radius based on start and goal
     informed_set_center, informed_set_x_axis, informed_set_radius = initialize_informed_set(startpos, endpos, initial_radius_fraction)
-
+    print(informed_set_radius)
 
     for _ in range(n_iter):
         # Biased Sampling towards Informed Set
@@ -372,9 +376,9 @@ def RRT_star_informed(startpos, endpos, obstacles, n_iter, radius, stepSize, ini
                 G.distances[endidx] = G.distances[newidx] + dist
 
             # Update Informed Set: Adjust to encompass the trajectory found
-            informed_set_center, informed_set_x_axis, informed_set_radius = update_informed_set(G, startpos, endpos)
+            informed_set_center, informed_set_x_axis, informed_y_radius, informed_z_radius = update_informed_set(G, startpos, endpos)
 
-            last_ellipsoid = (informed_set_center, informed_set_x_axis, informed_set_radius)
+            last_ellipsoid = (informed_set_center, informed_set_x_axis, informed_y_radius, informed_z_radius)
             print(last_ellipsoid)
 
             G.success = True
