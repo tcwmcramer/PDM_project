@@ -87,6 +87,7 @@ def newVertex(randvex, nearvex, stepSize):
     dirn = (dirn / length) * min (stepSize, length)
 
     newvex = (nearvex[0]+dirn[0], nearvex[1]+dirn[1], nearvex[2]+dirn[2])
+    newvex = (newvex[0], newvex[1], max(0, newvex[2]))
     return newvex
 
 
