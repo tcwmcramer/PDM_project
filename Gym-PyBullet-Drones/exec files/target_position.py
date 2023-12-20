@@ -6,7 +6,7 @@ Script demonstrating a single drown flying to a target position
 import time
 import argparse
 import numpy as np
-from ..control.Smoothpath import path_smooth
+from RRT_gym_pybullet_combination.Smoothpath import path_smooth
 
 from gym_pybullet_drones.utils.utils import sync, str2bool
 from gym_pybullet_drones.utils.enums import DroneModel, Physics

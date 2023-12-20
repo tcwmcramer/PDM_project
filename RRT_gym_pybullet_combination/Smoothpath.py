@@ -1,8 +1,8 @@
 import numpy as np
 from scipy.interpolate import CubicSpline
 import matplotlib.pyplot as plt
-from RTT_star import pathSearch
-from mpl_toolkits.mplot3d import Axes3D
+from RRT_gym_pybullet_combination.RTT_star import pathSearch
+
 
 def smooth_path(waypoints, num_points=100):
     # Transpose to have coordinates in separate arrays
