@@ -1,6 +1,7 @@
 import sys
 import random
 import math
+import os
 
 def generate_urdf(num_shapes, position_bounds, size_bounds, orientation_bounds):
     print("position_bounds:", position_bounds)
@@ -69,17 +70,31 @@ def generate_urdf(num_shapes, position_bounds, size_bounds, orientation_bounds):
     return urdf
 
 if __name__ == "__main__":
-    # Parse command-line arguments
-    if len(sys.argv) != 5:
-        print("Usage: python script.py num_shapes position_bounds size_bounds orientation_bounds")
-        sys.exit(1)
 
-    num_shapes = int(sys.argv[1])
-    position_bounds = sys.argv[2]
-    size_bounds = sys.argv[3]
-    orientation_bounds = sys.argv[4]
+    # Set the values directly in the script
+    num_shapes = 15
+    position_bounds = "-2.0,2.0"
+    size_bounds = "2.2,2.8"
+    orientation_bounds = "-1.0,1.0"
+    output_directory = "../Gym-PyBullet-Drones/assets"
+
+    # Set the output path to the desired directory and file name
 
     urdf_content = generate_urdf(num_shapes, position_bounds, size_bounds, orientation_bounds)
 
-    with open("random_rubble2.urdf", "w") as urdf_file:
+    # # Parse command-line arguments
+    # if len(sys.argv) != 5:
+    #     print("Usage: python script.py num_shapes position_bounds size_bounds orientation_bounds")
+    #     sys.exit(1)
+    #
+    # num_shapes = int(sys.argv[1])
+    # position_bounds = sys.argv[2]
+    # size_bounds = sys.argv[3]
+    # orientation_bounds = sys.argv[4]
+    #
+    # urdf_content = generate_urdf(num_shapes, position_bounds, size_bounds, orientation_bounds)
+    output_path = os.path.join(output_directory, "random_rubble.urdf")
+
+    with open(output_path, "w") as urdf_file:
         urdf_file.write(urdf_content)
+
