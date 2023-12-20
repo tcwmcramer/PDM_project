@@ -6,6 +6,7 @@ Script demonstrating a single drown flying to a target position
 import time
 import argparse
 import numpy as np
+from ..control.Smoothpath import path_smooth
 
 from gym_pybullet_drones.utils.utils import sync, str2bool
 from gym_pybullet_drones.utils.enums import DroneModel, Physics
@@ -52,9 +53,11 @@ def run(
     PERIOD = 10
     NUM_WP = control_freq_hz*PERIOD
     TARGET_POS = np.zeros((NUM_WP, 3))
+    print(TARGET_POS)
     for i in range(NUM_WP):
         TARGET_POS[i, :] = [0.5 * np.cos(2 * np.pi * (i / NUM_WP)), 0.5 * np.sin(2 * np.pi * (i / NUM_WP)), 0.5]
         #TARGET_POS[i, :] = [1.5, 2, 0.5]
+    TARGET_POS = path_smooth
     wp_counter = 0  #As it's only a single drone, no need to keep multiple counters
 
     #### Initialize the logger #################################
