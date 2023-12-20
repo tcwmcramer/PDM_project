@@ -11,7 +11,7 @@ from matplotlib import collections  as mc
 from collections import deque
 from mpl_toolkits.mplot3d.art3d import Line3DCollection
 import matplotlib
-# %matplotlib qt
+
 class Line():
     ''' Define line '''
     def __init__(self, p0, p1):
