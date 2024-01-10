@@ -24,7 +24,7 @@ class Line():
         return self.p + t * self.dirn
 
 
-def Intersection(line, center, radius):
+def Intersection(line, center, radius): #TODO add another obstacle function for cylinders
     ''' Check line-sphere (circle) intersection '''
     a = np.dot(line.dirn, line.dirn)
     b = 2 * np.dot(line.dirn, line.p - center)
@@ -50,12 +50,12 @@ def distance(x, y):
 
 def isInObstacle(vex, obstacles, radius):
     for obs in obstacles:
-        if distance(obs, vex) < radius:
+        if distance(obs, vex) < obs["radius"]:
             return True
     return False
 
-
-def isThruObstacle(line, obstacles, radius):
+# obstacles is a list of urdf files with radius included
+def isThruObstacle(line, obstacles, radius): # TODO for each obs one of the two intersection functions
     for obs in obstacles:
         if Intersection(line, obs, radius):
             return True
