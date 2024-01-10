@@ -272,11 +272,11 @@ def RRT_star(startpos, endpos, obstacles, n_iter, radius, stepSize):
                 G.distances[endidx] = G.distances[newidx]+dist
 
             G.success = True
-            #print('success')
-            # break
+            print('success')
+            break
     return G
 
-def initialize_informed_set(startpos, endpos, initial_radius_fraction=1):
+def initialize_informed_set(startpos, endpos, initial_radius_fraction):
     center = np.array([(start + end) / 2.0 for start, end in zip(startpos, endpos)])
     x_axis = np.array(endpos) - np.array(startpos)
     x_axis /= np.linalg.norm(x_axis)
@@ -290,54 +290,59 @@ def point_in_ellipsoid(point, a, b, c):
     equation_result = (x**2 / a**2) + (y**2 / b**2) + (z**2 / c**2)
     return equation_result <= 1
 
-def update_informed_set(graph, startpos, endpos, iterations=10):
-    center, x_axis, x_radius, y_radius, z_radius = initialize_informed_set(startpos, endpos)
+def update_informed_set(graph,
+                        informed_set_center,
+                        informed_set_x_axis,
+                        informed_set_x_radius,
+                        informed_set_y_radius,
+                        informed_set_z_radius,
+                        iterations=20):
+
+    center, x_axis, x_radius, y_radius, z_radius = (informed_set_center,
+                                                    informed_set_x_axis,
+                                                    informed_set_x_radius,
+                                                    informed_set_y_radius,
+                                                    informed_set_z_radius)
 
     best_path = dijkstra(graph)
 
     for _ in range(iterations):
+
+
         # Check and reduce x-radius
         point_outside_x = False
         for point in best_path:
-            projected_point_x = center + np.dot(point - center, x_axis) * x_axis
-            x_radius = max(x_radius, distance(projected_point_x, center))
             if not point_in_ellipsoid(point, x_radius, y_radius, z_radius):
                 point_outside_x = True
                 break
         if not point_outside_x:
-            x_radius *= 0.9
-        else:
-            break
+            x_radius *= 0.99
+            print('x adjusted')
 
         # Check and reduce y-radius
         point_outside_y = False
         for point in best_path:
-            projected_point_y = center + np.dot(point - center, np.array([0, 1, 0])) * np.array([0, 1, 0])
-            y_radius = max(y_radius, distance(projected_point_y, center))
             if not point_in_ellipsoid(point, x_radius, y_radius, z_radius):
                 point_outside_y = True
                 break
         if not point_outside_y:
-            y_radius *= 0.9
-        else:
-            break
+            y_radius *= 0.99
+            print('y adjusted')
 
         # Check and reduce z-radius
         point_outside_z = False
         for point in best_path:
-            projected_point_z = center + np.dot(point - center, np.array([0, 0, 1])) * np.array([0, 0, 1])
-            z_radius = max(z_radius, distance(projected_point_z, center))
             if not point_in_ellipsoid(point, x_radius, y_radius, z_radius):
                 point_outside_z = True
                 break
         if not point_outside_z:
-            z_radius *= 0.9
-        else:
-            break
+            z_radius *= 0.99
+            print('z adjusted')
+
 
     return center, x_axis, x_radius, y_radius, z_radius
 
-def RRT_star_informed(startpos, endpos, obstacles, n_iter, radius, stepSize, initial_radius_fraction=1):
+def RRT_star_informed(startpos, endpos, obstacles, n_iter, radius, stepSize, initial_radius_fraction=2.5):
     G = Graph(startpos, endpos)
 
     (informed_set_center,
@@ -345,8 +350,7 @@ def RRT_star_informed(startpos, endpos, obstacles, n_iter, radius, stepSize, ini
      informed_set_x_radius,
      informed_set_y_radius,
      informed_set_z_radius) = initialize_informed_set(startpos, endpos, initial_radius_fraction)
-
-    print(informed_set_x_radius, informed_set_y_radius, informed_set_z_radius)
+    print(informed_set_x_radius,informed_set_y_radius,informed_set_z_radius)
 
     for _ in range(n_iter):
         # Biased Sampling towards Informed Set
@@ -407,7 +411,12 @@ def RRT_star_informed(startpos, endpos, obstacles, n_iter, radius, stepSize, ini
              informed_set_x_axis,
              informed_set_x_radius,
              informed_set_y_radius,
-             informed_set_z_radius) = update_informed_set(G, startpos, endpos)
+             informed_set_z_radius) = update_informed_set(G,
+                                                          informed_set_center,
+                                                          informed_set_x_axis,
+                                                          informed_set_x_radius,
+                                                          informed_set_y_radius,
+                                                          informed_set_z_radius)
 
             last_ellipsoid = (informed_set_center,
                               informed_set_x_axis,
@@ -417,8 +426,9 @@ def RRT_star_informed(startpos, endpos, obstacles, n_iter, radius, stepSize, ini
             print(last_ellipsoid)
 
             G.success = True
-
+            print('success')
     return G
+
 
 def dijkstra(G):
     '''
