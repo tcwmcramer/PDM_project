@@ -8,7 +8,7 @@ import argparse
 import numpy as np
 from scipy import interpolate
 from Smoothpath import smooth_path, plot_smoothed_path
-from RTT_star import pathSearch
+from RTT_star import pathSearch, parse_urdf
 
 from gym_pybullet_drones.utils.utils import sync, str2bool
 from gym_pybullet_drones.utils.enums import DroneModel, Physics
@@ -42,9 +42,10 @@ def run(
     ):
 
     #### Define obstacles and waypoints ########################
-    startpos = (0., 0., 2.)
+    startpos = (0., 0., 5.)
     endpos = (5., 5., 0.)
-    obstacles = [(1., 1., 1.), (2., 2., 2.)]
+    urdf_path = "../RRT_gym_pybullet_combination/obstacles/random_rubble2.urdf"  # Update with your actual URDF file path
+    obstacles = parse_urdf(urdf_path)
     n_iter = 200
     radius = 1.5
     stepSize = 0.7
