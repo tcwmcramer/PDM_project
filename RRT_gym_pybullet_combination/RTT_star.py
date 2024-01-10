@@ -363,10 +363,10 @@ def RRT_star_informed(startpos, endpos, obstacles, n_iter, radius, stepSize, ini
             ground_threshold = 0
             randvex = (randvex[0], randvex[1], max(randvex[2], ground_threshold))
 
-        if isInObstacle(randvex, obstacles, radius):
+        if isInObstacle(randvex, obstacles):
             continue
 
-        nearvex, nearidx = nearest(G, randvex, obstacles, radius)
+        nearvex, nearidx = nearest(G, randvex, obstacles)
         if nearvex is None:
             continue
 
@@ -386,7 +386,7 @@ def RRT_star_informed(startpos, endpos, obstacles, n_iter, radius, stepSize, ini
                 continue
 
             line = Line(vex, newvex)
-            if isThruObstacle(line, obstacles, radius):
+            if isThruObstacle(line, obstacles):
                 continue
 
             idx = G.vex2idx[vex]
