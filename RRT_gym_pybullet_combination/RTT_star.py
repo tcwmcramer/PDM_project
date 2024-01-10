@@ -307,38 +307,20 @@ def update_informed_set(graph,
     best_path = dijkstra(graph)
 
     for _ in range(iterations):
-
-
         # Check and reduce x-radius
-        point_outside_x = False
-        for point in best_path:
-            if not point_in_ellipsoid(point, x_radius, y_radius, z_radius):
-                point_outside_x = True
-                break
-        if not point_outside_x:
+        if all(point_in_ellipsoid(point, x_radius * 0.99, y_radius, z_radius) for point in best_path):
             x_radius *= 0.99
             print('x adjusted')
 
         # Check and reduce y-radius
-        point_outside_y = False
-        for point in best_path:
-            if not point_in_ellipsoid(point, x_radius, y_radius, z_radius):
-                point_outside_y = True
-                break
-        if not point_outside_y:
+        if all(point_in_ellipsoid(point, x_radius, y_radius * 0.99, z_radius) for point in best_path):
             y_radius *= 0.99
             print('y adjusted')
 
         # Check and reduce z-radius
-        point_outside_z = False
-        for point in best_path:
-            if not point_in_ellipsoid(point, x_radius, y_radius, z_radius):
-                point_outside_z = True
-                break
-        if not point_outside_z:
+        if all(point_in_ellipsoid(point, x_radius, y_radius, z_radius * 0.99) for point in best_path):
             z_radius *= 0.99
             print('z adjusted')
-
 
     return center, x_axis, x_radius, y_radius, z_radius
 
@@ -584,4 +566,4 @@ if __name__ == '__main__':
         print(path)
         plot(G, obstacles, path)
     else:
-        plot(G, obstacles)
+        print('NO PATH FOUND')
