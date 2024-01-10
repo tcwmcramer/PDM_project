@@ -11,7 +11,8 @@ from matplotlib import collections  as mc
 from collections import deque
 from mpl_toolkits.mplot3d.art3d import Line3DCollection
 import matplotlib
-# %matplotlib qt
+import xml.etree.ElementTree as ET
+
 class Line():
     ''' Define line '''
     def __init__(self, p0, p1):
@@ -24,7 +25,7 @@ class Line():
         return self.p + t * self.dirn
 
 
-def Intersection(line, center, radius): #TODO add another obstacle function for cylinders
+def Intersection(line, center, radius):
     ''' Check line-sphere (circle) intersection '''
     a = np.dot(line.dirn, line.dirn)
     b = 2 * np.dot(line.dirn, line.p - center)
@@ -44,32 +45,32 @@ def Intersection(line, center, radius): #TODO add another obstacle function for 
 
 
 
-def distance(x, y):
-    return np.linalg.norm(np.array(x) - np.array(y))
+def distance(p1, p2):
+    return np.linalg.norm(np.array(p1) - np.array(p2))
 
 
-def isInObstacle(vex, obstacles, radius):
+def isInObstacle(vex, obstacles):
     for obs in obstacles:
-        if distance(obs, vex) < obs["radius"]:
-            return True
-    return False
-
-# obstacles is a list of urdf files with radius included
-def isThruObstacle(line, obstacles, radius): # TODO for each obs one of the two intersection functions
-    for obs in obstacles:
-        if Intersection(line, obs, radius):
+        if distance(obs[:3], vex) < obs[3]:
             return True
     return False
 
 
-def nearest(G, vex, obstacles, radius):
+def isThruObstacle(line, obstacles):
+    for obs in obstacles:
+        if Intersection(line, obs[:3], obs[3]):
+            return True
+    return False
+
+
+def nearest(G, vex, obstacles):
     Nvex = None
     Nidx = None
     minDist = float("inf")
 
     for idx, v in enumerate(G.vertices):
         line = Line(v, vex)
-        if isThruObstacle(line, obstacles, radius):
+        if isThruObstacle(line, obstacles):
             continue
 
         dist = distance(v, vex)
@@ -196,10 +197,10 @@ def RRT(startpos, endpos, obstacles, n_iter, radius, stepSize):
 
     for _ in range(n_iter):
         randvex = G.randomPosition()
-        if isInObstacle(randvex, obstacles, radius):
+        if isInObstacle(randvex, obstacles):
             continue
 
-        nearvex, nearidx = nearest(G, randvex, obstacles, radius)
+        nearvex, nearidx = nearest(G, randvex, obstacles)
         if nearvex is None:
             continue
 
@@ -229,10 +230,10 @@ def RRT_star(startpos, endpos, obstacles, n_iter, radius, stepSize):
         # Ensure that the random position does not go below the ground
         randvex = (randvex[0], randvex[1], max(randvex[2], ground_threshold))
 
-        if isInObstacle(randvex, obstacles, radius):
+        if isInObstacle(randvex, obstacles):
             continue
 
-        nearvex, nearidx = nearest(G, randvex, obstacles, radius)
+        nearvex, nearidx = nearest(G, randvex, obstacles)
         if nearvex is None:
             continue
 
@@ -253,7 +254,7 @@ def RRT_star(startpos, endpos, obstacles, n_iter, radius, stepSize):
                 continue
 
             line = Line(vex, newvex)
-            if isThruObstacle(line, obstacles, radius):
+            if isThruObstacle(line, obstacles):
                 continue
 
             idx = G.vex2idx[vex]
@@ -455,7 +456,7 @@ def dijkstra(G):
 
 
 
-def plot(G, obstacles, radius, path=None):
+def plot(G, obstacles, path=None):
     '''
     Plot RRT, obstacles and shortest path
     '''
@@ -472,9 +473,9 @@ def plot(G, obstacles, radius, path=None):
         # Add a sphere to the environment
         u = np.linspace(0, 2 * np.pi, 100)
         v = np.linspace(0, np.pi, 100)
-        x = obs[0] + radius * np.outer(np.cos(u), np.sin(v))
-        y = obs[1] + radius * np.outer(np.sin(u), np.sin(v))
-        z = obs[2] + radius * np.outer(np.ones(np.size(u)), np.cos(v))
+        x = obs[0] + obs[3] * np.outer(np.cos(u), np.sin(v))
+        y = obs[1] + obs[3] * np.outer(np.sin(u), np.sin(v))
+        z = obs[2] + obs[3] * np.outer(np.ones(np.size(u)), np.cos(v))
         ax.plot_surface(x, y, z, color='b', alpha=0.2)
 
     # Plot RRT vertices
@@ -506,10 +507,50 @@ def pathSearch(startpos, endpos, obstacles, n_iter, radius, stepSize):
         return path
 
 
+def extract_joint_params(urdf_path):
+    tree = ET.parse(urdf_path)
+    root = tree.getroot()
+
+    num_links = len(root.findall('.//link'))
+    joint_params_matrix = np.zeros((num_links, 4))  # Columns: x, y, z, radius
+
+    link_index = 0
+
+    for link in root.findall('.//link'):
+        visual = link.find('.//visual')
+        geometry = visual.find('.//geometry')
+
+        if 'box' in geometry.tag:
+            size = [float(s) for s in geometry.attrib['size'].split()]
+            radius = max(size) / 1.5
+            origin = visual.find('.//origin').attrib['xyz']
+            centerpoint = [float(o) for o in origin.split()]
+        elif 'sphere' in geometry.tag:
+            radius = float(geometry.attrib['radius'])
+            origin = visual.find('.//origin').attrib['xyz']
+            centerpoint = [float(o) for o in origin.split()]
+        elif 'cylinder' in geometry.tag:
+            #length = float(geometry.attrib['length'])
+            radius = float(geometry.attrib['radius'])
+            origin = visual.find('.//origin').attrib['xyz']
+            centerpoint = [float(o) for o in origin.split()]
+        else:
+            raise ValueError(f"Unsupported geometry: {geometry.tag}")
+
+        joint_params_matrix[link_index, 0:3] = centerpoint
+        joint_params_matrix[link_index, 3] = radius
+
+        link_index += 1
+
+    return joint_params_matrix
+
+
 if __name__ == '__main__':
+
     startpos = (0., 0., 0.)
     endpos = (5., 5., 5.)
-    obstacles = [(1., 1., 1.), (2., 2., 2.)]
+    urdf_path = "../RRT_gym_pybullet_combination/obstacles/random_rubble2.urdf"  # Update with your actual URDF file path
+    obstacles = extract_joint_params(urdf_path)
     n_iter = 200
     radius = 1.5
     stepSize = 0.7
@@ -521,6 +562,6 @@ if __name__ == '__main__':
     if G.success:
         path = dijkstra(G)
         print(path)
-        plot(G, obstacles, radius, path)
+        plot(G, obstacles, path)
     else:
-        plot(G, obstacles, radius)
+        plot(G, obstacles)
