@@ -370,7 +370,7 @@ if __name__ == '__main__':
 
     startpos = (0., 0., 0.)
     endpos = (5., 5., 5.)
-    urdf_path = "RRT_gym_pybullet_combination/obstacles/random_rubble2.urdf"  # Update with your actual URDF file path
+    urdf_path = "../RRT_gym_pybullet_combination/obstacles/random_rubble2.urdf"  # Update with your actual URDF file path
     obstacles = extract_joint_params(urdf_path)
     n_iter = 200
     stepSize = 0.7
