@@ -18,7 +18,7 @@ class Line():
         self.p = np.array(p0)
         self.dirn = np.array(p1) - np.array(p0)
         self.dist = np.linalg.norm(self.dirn)
-        self.dirn /= self.dist # normalize
+        self.dirn /= self.dist  # normalize
 
     def path(self, t):
         return self.p + t * self.dirn
@@ -48,28 +48,28 @@ def distance(x, y):
     return np.linalg.norm(np.array(x) - np.array(y))
 
 
-def isInObstacle(vex, obstacles, radius):
+def isInObstacle(vex, obstacles):
     for obs in obstacles:
-        if distance(obs, vex) < radius:
+        if distance(obs[:3], vex) < obs[3]:
             return True
     return False
 
 
-def isThruObstacle(line, obstacles, radius):
+def isThruObstacle(line, obstacles):
     for obs in obstacles:
-        if Intersection(line, obs, radius):
+        if Intersection(line, obs[:3], obs[3]):
             return True
     return False
 
 
-def nearest(G, vex, obstacles, radius):
+def nearest(G, vex, obstacles):
     Nvex = None
     Nidx = None
     minDist = float("inf")
 
     for idx, v in enumerate(G.vertices):
         line = Line(v, vex)
-        if isThruObstacle(line, obstacles, radius):
+        if isThruObstacle(line, obstacles):
             continue
 
         dist = distance(v, vex)
@@ -163,10 +163,10 @@ def RRT(startpos, endpos, obstacles, n_iter, radius, stepSize):
 
     for _ in range(n_iter):
         randvex = G.randomPosition()
-        if isInObstacle(randvex, obstacles, radius):
+        if isInObstacle(randvex, obstacles):
             continue
 
-        nearvex, nearidx = nearest(G, randvex, obstacles, radius)
+        nearvex, nearidx = nearest(G, randvex, obstacles)
         if nearvex is None:
             continue
 
@@ -192,10 +192,10 @@ def RRT_star(startpos, endpos, obstacles, n_iter, radius, stepSize):
 
     for _ in range(n_iter):
         randvex = G.randomPosition()
-        if isInObstacle(randvex, obstacles, radius):
+        if isInObstacle(randvex, obstacles):
             continue
 
-        nearvex, nearidx = nearest(G, randvex, obstacles, radius)
+        nearvex, nearidx = nearest(G, randvex, obstacles)
         if nearvex is None:
             continue
 
@@ -216,7 +216,7 @@ def RRT_star(startpos, endpos, obstacles, n_iter, radius, stepSize):
                 continue
 
             line = Line(vex, newvex)
-            if isThruObstacle(line, obstacles, radius):
+            if isThruObstacle(line, obstacles):
                 continue
 
             idx = G.vex2idx[vex]
@@ -276,7 +276,7 @@ def dijkstra(G):
 
 
 
-def plot(G, obstacles, radius, path=None):
+def plot(G, obstacles, path=None):
     '''
     Plot RRT, obstacles and shortest path
     '''
@@ -293,9 +293,9 @@ def plot(G, obstacles, radius, path=None):
         # Add a sphere to the environment
         u = np.linspace(0, 2 * np.pi, 100)
         v = np.linspace(0, np.pi, 100)
-        x = obs[0] + radius * np.outer(np.cos(u), np.sin(v))
-        y = obs[1] + radius * np.outer(np.sin(u), np.sin(v))
-        z = obs[2] + radius * np.outer(np.ones(np.size(u)), np.cos(v))
+        x = obs[0] + obs[3] * np.outer(np.cos(u), np.sin(v))
+        y = obs[1] + obs[3] * np.outer(np.sin(u), np.sin(v))
+        z = obs[2] + obs[3] * np.outer(np.ones(np.size(u)), np.cos(v))
         ax.plot_surface(x, y, z, color='b', alpha=0.2)
 
     # Plot RRT vertices
@@ -341,6 +341,6 @@ if __name__ == '__main__':
     if G.success:
         path = dijkstra(G)
         print(path)
-        plot(G, obstacles, radius, path)
+        plot(G, obstacles, path)
     else:
-        plot(G, obstacles, radius)
+        plot(G, obstacles)
