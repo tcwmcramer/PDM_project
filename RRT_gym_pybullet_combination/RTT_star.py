@@ -296,7 +296,7 @@ def update_informed_set(graph,
                         informed_set_x_radius,
                         informed_set_y_radius,
                         informed_set_z_radius,
-                        iterations=20):
+                        iterations=50):
 
     center, x_axis, x_radius, y_radius, z_radius = (informed_set_center,
                                                     informed_set_x_axis,
@@ -306,21 +306,30 @@ def update_informed_set(graph,
 
     best_path = dijkstra(graph)
 
+    # Check and reduce y-radius
     for _ in range(iterations):
-        # Check and reduce x-radius
-        if all(point_in_ellipsoid(point, x_radius * 0.99, y_radius, z_radius) for point in best_path):
-            x_radius *= 0.99
-            print('x adjusted')
-
-        # Check and reduce y-radius
-        if all(point_in_ellipsoid(point, x_radius, y_radius * 0.99, z_radius) for point in best_path):
+        if all(point_in_ellipsoid(point, x_radius, y_radius, z_radius) for point in best_path):
             y_radius *= 0.99
             print('y adjusted')
+        else:
+            break  # Exit loop if any point falls outside the ellipsoid
 
-        # Check and reduce z-radius
-        if all(point_in_ellipsoid(point, x_radius, y_radius, z_radius * 0.99) for point in best_path):
+    # Check and reduce z-radius
+    for _ in range(iterations):
+        if all(point_in_ellipsoid(point, x_radius, y_radius, z_radius) for point in best_path):
             z_radius *= 0.99
             print('z adjusted')
+        else:
+            break  # Exit loop if any point falls outside the ellipsoid
+
+    # Check and reduce x-radius
+    for _ in range(iterations):
+        if all(point_in_ellipsoid(point, x_radius, y_radius, z_radius) for point in best_path):
+            x_radius *= 0.99
+            print('x adjusted')
+        else:
+            break  # Exit loop if any point falls outside the ellipsoid
+
 
     return center, x_axis, x_radius, y_radius, z_radius
 
@@ -549,7 +558,7 @@ def parse_urdf(urdf_file):
 
 if __name__ == '__main__':
 
-    startpos = (0., 0., 0.)
+    startpos = (10., 0., 0.)
     endpos = (5., 5., 5.)
     urdf_path = "../RRT_gym_pybullet_combination/obstacles/random_rubble2.urdf"  # Update with your actual URDF file path
     obstacles = parse_urdf(urdf_path)
