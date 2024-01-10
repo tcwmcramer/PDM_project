@@ -281,7 +281,7 @@ def plot(G, obstacles, path=None):
     '''
     Plot RRT, obstacles and shortest path
     '''
-    matplotlib.use('Qt5Agg')
+    #matplotlib.use('Qt5Agg')
 
     px = [x for x, y, z in G.vertices]
     py = [y for x, y, z in G.vertices]
@@ -328,52 +328,67 @@ def pathSearch(startpos, endpos, obstacles, n_iter, radius, stepSize):
         return path
 
 
-def extract_joint_params(urdf_path):
-    tree = ET.parse(urdf_path)
+
+def parse_urdf(urdf_file):
+    # Load the URDF file
+    tree = ET.parse(urdf_file)
     root = tree.getroot()
 
-    num_links = len(root.findall('.//link'))
-    joint_params_matrix = np.zeros((num_links, 4))  # Columns: x, y, z, radius
+    # Create an empty matrix
+    matrix = []
 
-    link_index = 0
+    # Iterate through each link in the URDF
+    for link in root.findall(".//link"):
+        link_name = link.get('name')
 
-    for link in root.findall('.//link'):
-        visual = link.find('.//visual')
-        geometry = visual.find('.//geometry')
+        # Extract collision information
+        collision = link.find(".//collision")
+        if collision is not None:
+            collision_geometry = collision.find(".//geometry/*")
+            if collision_geometry is not None:
+                if collision_geometry.tag == 'sphere':
+                    radius_collision = float(collision_geometry.get('radius'))
+                elif collision_geometry.tag == 'cylinder':
+                    radius_collision = float(collision_geometry.get('radius'))
+                elif collision_geometry.tag == 'box':
+                    # Calculate the radius for the sphere around the box
+                    size = [float(s) for s in collision_geometry.get('size').split()]
+                    diagonal_length = np.linalg.norm(size) / 2.0
+                    radius_collision = diagonal_length
+                else:
+                    # Handle other geometry types if necessary
+                    radius_collision = None
+            else:
+                radius_collision = None
 
-        if 'box' in geometry.tag:
-            size = [float(s) for s in geometry.attrib['size'].split()]
-            radius = max(size) / 1.5
-            origin = visual.find('.//origin').attrib['xyz']
-            centerpoint = [float(o) for o in origin.split()]
-        elif 'sphere' in geometry.tag:
-            radius = float(geometry.attrib['radius'])
-            origin = visual.find('.//origin').attrib['xyz']
-            centerpoint = [float(o) for o in origin.split()]
-        elif 'cylinder' in geometry.tag:
-            #length = float(geometry.attrib['length'])
-            radius = float(geometry.attrib['radius'])
-            origin = visual.find('.//origin').attrib['xyz']
-            centerpoint = [float(o) for o in origin.split()]
-        else:
-            raise ValueError(f"Unsupported geometry: {geometry.tag}")
+            # Extract origin information
+            origin = collision.find(".//origin")
+            if origin is not None:
+                xyz = [float(x) for x in origin.get('xyz').split()]
+            else:
+                xyz = [0, 0, 0]
 
-        joint_params_matrix[link_index, 0:3] = centerpoint
-        joint_params_matrix[link_index, 3] = radius
+            # Add the information to the matrix
+            matrix.append([xyz[0], xyz[1], xyz[2], radius_collision])
 
-        link_index += 1
+    # Convert the matrix to a NumPy array for easier manipulation
+    matrix = np.array(matrix)
 
-    return joint_params_matrix
-
+    return matrix
 
 if __name__ == '__main__':
 
     startpos = (0., 0., 0.)
     endpos = (5., 5., 5.)
     urdf_path = "../RRT_gym_pybullet_combination/obstacles/random_rubble2.urdf"  # Update with your actual URDF file path
-    obstacles = extract_joint_params(urdf_path)
+    obstacles = parse_urdf(urdf_path)
+    radius = 1.5
     n_iter = 200
     stepSize = 0.7
+
+    # Print the extracted joint parameters matrix
+    print("Matrix (Rows: Links, Columns: x, y, z, radius):")
+    print(obstacles)
 
     G = RRT_star(startpos, endpos, obstacles, n_iter, radius, stepSize)
     # G = RRT(startpos, endpos, obstacles, n_iter, radius, stepSize)
