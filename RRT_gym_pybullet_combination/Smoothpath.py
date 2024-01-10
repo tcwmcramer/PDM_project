@@ -36,18 +36,18 @@ def plot_smoothed_path(waypoints, path_smooth):
     ax.legend()
     plt.show()
 
+if __name__ == '__main__':
+    startpos = (0., 0., 0.)
+    endpos = (5., 5., 0.)
+    obstacles = [(1., 1., 1.), (2., 2., 2.)]
+    n_iter = 200
+    radius = 1.5
+    stepSize = 0.7
 
-startpos = (0., 0., 0.)
-endpos = (5., 5., 5.)
-obstacles = [(1., 1., 1.), (2., 2., 2.)]
-n_iter = 200
-radius = 1.5
-stepSize = 0.7
-
-# Example usage with an unknown number of waypoints
-waypoints = pathSearch(startpos, endpos, obstacles, n_iter, radius, stepSize)
+    # Example usage with an unknown number of waypoints
+    waypoints = pathSearch(startpos, endpos, obstacles, n_iter, radius, stepSize)
 
 
 
-path_smooth = smooth_path(waypoints)
-plot_smoothed_path(waypoints, path_smooth)
+    path_smooth = smooth_path(waypoints)
+    plot_smoothed_path(waypoints, path_smooth)

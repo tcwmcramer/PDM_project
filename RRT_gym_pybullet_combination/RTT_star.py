@@ -508,7 +508,7 @@ def pathSearch(startpos, endpos, obstacles, n_iter, radius, stepSize):
 
 if __name__ == '__main__':
     startpos = (0., 0., 0.)
-    endpos = (5., 5., 5.)
+    endpos = (5., 5., 0.)
     obstacles = [(1., 1., 1.), (2., 2., 2.)]
     n_iter = 200
     radius = 1.5

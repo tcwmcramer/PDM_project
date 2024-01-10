@@ -7,16 +7,17 @@ import time
 import argparse
 import numpy as np
 from scipy import interpolate
-from Smoothpath import path_smooth
+from Smoothpath import smooth_path, plot_smoothed_path
+from RTT_star import pathSearch
 
 from gym_pybullet_drones.utils.utils import sync, str2bool
 from gym_pybullet_drones.utils.enums import DroneModel, Physics
 from gym_pybullet_drones.envs.CtrlAviary import CtrlAviary
 from gym_pybullet_drones.control.DSLPIDControl import DSLPIDControl
-from gym_pybullet_drones.utils.Logger import Logger
+# from gym_pybullet_drones.utils.Logger import Logger
 
 
-DEFAULT_DRONE = DroneModel('cf2x')
+DEFAULT_DRONE = DroneModel('cf2p')
 DEFAULT_GUI = True
 DEFAULT_RECORD_VIDEO = False
 DEFAULT_SIMULATION_FREQ_HZ = 240
@@ -24,7 +25,9 @@ DEFAULT_CONTROL_FREQ_HZ = 48
 DEFAULT_DURATION_SEC = 12
 DEFAULT_OUTPUT_FOLDER = 'results'
 DEFAULT_COLAB = False
-path_smooth = path_smooth
+
+
+
 
 def run(
         drone=DEFAULT_DRONE,
@@ -37,6 +40,23 @@ def run(
         plot=True,
         colab=DEFAULT_COLAB
     ):
+
+    #### Define obstacles and waypoints ########################
+    startpos = (0., 0., 2.)
+    endpos = (5., 5., 0.)
+    obstacles = [(1., 1., 1.), (2., 2., 2.)]
+    n_iter = 200
+    radius = 1.5
+    stepSize = 0.7
+
+
+    waypoints = pathSearch(startpos, endpos,obstacles, n_iter, radius, stepSize)
+
+
+    path_smooth = smooth_path(waypoints)
+    plot_smoothed_path(waypoints, path_smooth)
+
+
     #### Initialize the simulation #############################
     INIT_XYZS = np.array([path_smooth[0]])
     env = CtrlAviary(drone_model=drone,
@@ -48,16 +68,19 @@ def run(
                      ctrl_freq=control_freq_hz, #the frequency at which control commands are applied to the simulated drones or agents within the environment?
                      gui=gui,
                      record=record_video,
-                     obstacles=False
+                     obstacles=True
                      )
 
+
+
+
     #### Initialize the trajectories ###########################
-    PERIOD = 20
+    PERIOD = 30
     NUM_WP = control_freq_hz*PERIOD
     TARGET_POS = np.zeros((NUM_WP, 3))
-    # for i in range(NUM_WP):
-    #     TARGET_POS[i, :] = [0.5 * np.cos(2 * np.pi * (i / NUM_WP)), 0.5 * np.sin(2 * np.pi * (i / NUM_WP)), 0.5]
-        # TARGET_POS[i, :] = [1.5, 2, 0.5]
+
+
+
 
     interp_func = interpolate.interp1d(
         np.linspace(0, 1, num=len(path_smooth)),
@@ -66,9 +89,9 @@ def run(
         kind='linear'
     )
     new_indices = np.linspace(0, 1, num=NUM_WP)
-    print(path_smooth)
+    # print(path_smooth)
     TARGET_POS = interp_func(new_indices)
-    print(TARGET_POS.shape)
+    print(TARGET_POS)
     # TARGET_POS = TARGET_POS[:NUM_WP]
 
     wp_counter = 0  #As it's only a single drone, no need to keep multiple counters
@@ -76,12 +99,12 @@ def run(
 
 
     #### Initialize the logger #################################
-    logger = Logger(logging_freq_hz=control_freq_hz,
-                    num_drones=1,
-                    duration_sec=duration_sec,
-                    output_folder=output_folder,
-                    colab=colab
-                    )
+    # logger = Logger(logging_freq_hz=control_freq_hz,
+    #                 num_drones=1,
+    #                 duration_sec=duration_sec,
+    #                 output_folder=output_folder,
+    #                 colab=colab
+    #                 )
 
     #### Initialize the controllers ############################
     ctrl = DSLPIDControl(drone_model=drone)
@@ -89,7 +112,7 @@ def run(
     #### Run the simulation ####################################
     action = np.zeros((1,4))
     START = time.time()
-    for i in range(0, int(duration_sec*env.CTRL_FREQ)):
+    for i in range(0, NUM_WP):
 
         #### Step the simulation ###################################
         obs, reward, terminated, truncated, info = env.step(action)
@@ -104,11 +127,11 @@ def run(
         wp_counter = (wp_counter + 1) if wp_counter < (NUM_WP - 1) else 0
 
         #### Log the simulation ####################################
-        logger.log(drone=0,
-                    timestamp=i/env.CTRL_FREQ,
-                    state=obs[0],
-                    control=np.hstack([TARGET_POS[wp_counter], np.zeros(9)])
-                    )
+        # logger.log(drone=0,
+        #             timestamp=i/env.CTRL_FREQ,
+        #             state=obs[0],
+        #             control=np.hstack([TARGET_POS[wp_counter], np.zeros(9)])
+        #             )
 
         #### Printout ##############################################
         env.render()
@@ -121,12 +144,12 @@ def run(
     env.close()
 
     #### Save the simulation results ###########################
-    logger.save()
-    logger.save_as_csv("dw") # Optional CSV save
+    # logger.save()
+    # logger.save_as_csv("dw") # Optional CSV save
 
     #### Plot the simulation results ###########################
-    if plot:
-        logger.plot()
+    # if plot:
+    #     logger.plot()
 
 
 if __name__ == "__main__":
