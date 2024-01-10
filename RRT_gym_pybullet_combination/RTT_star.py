@@ -11,6 +11,7 @@ from matplotlib import collections  as mc
 from collections import deque
 from mpl_toolkits.mplot3d.art3d import Line3DCollection
 import matplotlib
+import xml.etree.ElementTree as ET
 
 class Line():
     ''' Define line '''
@@ -44,8 +45,8 @@ def Intersection(line, center, radius):
 
 
 
-def distance(x, y):
-    return np.linalg.norm(np.array(x) - np.array(y))
+def distance(p1, p2):
+    return np.linalg.norm(np.array(p1) - np.array(p2))
 
 
 def isInObstacle(vex, obstacles):
@@ -327,12 +328,51 @@ def pathSearch(startpos, endpos, obstacles, n_iter, radius, stepSize):
         return path
 
 
+def extract_joint_params(urdf_path):
+    tree = ET.parse(urdf_path)
+    root = tree.getroot()
+
+    num_links = len(root.findall('.//link'))
+    joint_params_matrix = np.zeros((num_links, 4))  # Columns: x, y, z, radius
+
+    link_index = 0
+
+    for link in root.findall('.//link'):
+        visual = link.find('.//visual')
+        geometry = visual.find('.//geometry')
+
+        if 'box' in geometry.tag:
+            size = [float(s) for s in geometry.attrib['size'].split()]
+            radius = max(size) / 1.5
+            origin = visual.find('.//origin').attrib['xyz']
+            centerpoint = [float(o) for o in origin.split()]
+        elif 'sphere' in geometry.tag:
+            radius = float(geometry.attrib['radius'])
+            origin = visual.find('.//origin').attrib['xyz']
+            centerpoint = [float(o) for o in origin.split()]
+        elif 'cylinder' in geometry.tag:
+            #length = float(geometry.attrib['length'])
+            radius = float(geometry.attrib['radius'])
+            origin = visual.find('.//origin').attrib['xyz']
+            centerpoint = [float(o) for o in origin.split()]
+        else:
+            raise ValueError(f"Unsupported geometry: {geometry.tag}")
+
+        joint_params_matrix[link_index, 0:3] = centerpoint
+        joint_params_matrix[link_index, 3] = radius
+
+        link_index += 1
+
+    return joint_params_matrix
+
+
 if __name__ == '__main__':
+
     startpos = (0., 0., 0.)
     endpos = (5., 5., 5.)
-    obstacles = [(1., 1., 1.), (2., 2., 2.)]
+    urdf_path = "RRT_gym_pybullet_combination/obstacles/random_rubble2.urdf"  # Update with your actual URDF file path
+    obstacles = extract_joint_params(urdf_path)
     n_iter = 200
-    radius = 1.5
     stepSize = 0.7
 
     G = RRT_star(startpos, endpos, obstacles, n_iter, radius, stepSize)
