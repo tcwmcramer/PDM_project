@@ -76,9 +76,9 @@ def generate_urdf(num_shapes, position_bounds, size_bounds, orientation_bounds):
 if __name__ == "__main__":
 
     # Set the values directly in the script
-    num_shapes = 15
+    num_shapes = 5
     position_bounds = "-2.0,2.0"
-    size_bounds = "2.2,2.8"
+    size_bounds = "1.2,1.8"
     orientation_bounds = "-1.0,1.0"
     output_directory = "obstacles"
 

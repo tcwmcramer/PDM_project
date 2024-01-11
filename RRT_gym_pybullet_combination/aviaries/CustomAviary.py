@@ -80,13 +80,26 @@ class CustomAviary(CtrlAviary):
 
         """
         current_directory = os.getcwd()
-        parent_directory = os.path.dirname(current_directory)
-        target_directory = os.path.join(current_directory, "obstacles/box2.urdf")
-        p.loadURDF(target_directory,
-                   [1, 0, 0],
-                   p.getQuaternionFromEuler([0, 0, 0]),
-                   physicsClientId=self.CLIENT
-                   )
+
+        # Construct the path to the "obstacles" folder
+        obstacles_folder = os.path.join(current_directory, "obstacles")
+
+        # Get a list of all files in the "obstacles" folder
+        all_files = os.listdir(obstacles_folder)
+
+        # Filter out only the URDF files
+        urdf_files = [file for file in all_files if file.endswith(".urdf")]
+
+        for urdf_file in urdf_files:
+            # Construct the full path to the URDF file
+            urdf_path = os.path.join(obstacles_folder, urdf_file)
+
+            # Load the URDF file using PyBullet
+            obstacle_id = p.loadURDF(urdf_path,
+                                     basePosition=[0, 0, 0],
+                                     baseOrientation=p.getQuaternionFromEuler([0, 0, 0]),
+                                     physicsClientId=0  # Replace with the appropriate physics client ID
+                                     )
         p.loadURDF("samurai.urdf",
                    physicsClientId=self.CLIENT
                    )
@@ -95,19 +108,3 @@ class CustomAviary(CtrlAviary):
                    p.getQuaternionFromEuler([0, 0, 0]),
                    physicsClientId=self.CLIENT
                    )
-        # p.loadURDF("duck_vhacd.urdf",
-        #            [-1, 0, .1],
-        #            p.getQuaternionFromEuler([0, 0, 0]),
-        #            physicsClientId=self.CLIENT
-        #            )
-        # p.loadURDF("teddy_vhacd.urdf",
-        #            [0, -1, .1],
-        #            p.getQuaternionFromEuler([0, 0, 0]),
-        #            physicsClientId=self.CLIENT
-        #            )
-        # p.loadURDF("../obstacles/box2.urdf",
-        #            [0, -1, .1],
-        #            p.getQuaternionFromEuler([0, 0, 0]),
-        #            [0, -1, .1],
-        #            physicsClientId=self.CLIENT
-        #            )
