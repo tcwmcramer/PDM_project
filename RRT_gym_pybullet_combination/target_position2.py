@@ -9,10 +9,12 @@ import numpy as np
 from scipy import interpolate
 from Smoothpath import smooth_path, plot_smoothed_path
 from RTT_star import pathSearch, parse_urdf
+import pybullet as p
 
 from gym_pybullet_drones.utils.utils import sync, str2bool
 from gym_pybullet_drones.utils.enums import DroneModel, Physics
-from gym_pybullet_drones.envs.CtrlAviary import CtrlAviary
+# from gym_pybullet_drones.envs.CtrlAviary import CtrlAviary
+from RRT_gym_pybullet_combination.aviaries.CtrlAviary import CtrlAviary
 from gym_pybullet_drones.control.DSLPIDControl import DSLPIDControl
 # from gym_pybullet_drones.utils.Logger import Logger
 
@@ -42,7 +44,7 @@ def run(
     ):
 
     #### Define obstacles and waypoints ########################
-    startpos = (0., 0., 5.)
+    startpos = (0., 0., 4.)
     endpos = (5., 5., 0.)
     urdf_path = "../RRT_gym_pybullet_combination/obstacles/random_rubble2.urdf"  # Update with your actual URDF file path
     obstacles = parse_urdf(urdf_path)
@@ -72,7 +74,10 @@ def run(
                      obstacles=True
                      )
 
-
+    # obstacle_id = p.loadURDF("../RRT_gym_pybullet_combination/obstacles/box2.urdf")
+    # position = [0,0,0]
+    # orientation = [0,0,0,1]
+    # p.resetBasePositionAndOrientation(obstacle_id, position, orientation)
 
 
     #### Initialize the trajectories ###########################
