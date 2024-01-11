@@ -1,3 +1,5 @@
+import os
+
 import numpy as np
 from gymnasium import spaces
 
@@ -25,7 +27,7 @@ class CtrlAviary(BaseAviary):
                  obstacles=True,
                  user_debug_gui=True,
                  output_folder='results',
-                 obs: ObservationType = ObservationType.KIN,
+                 obs: ObservationType = ObservationType.RGB,
 
                  ):
         """Initialization of an aviary environment for control applications.
@@ -58,6 +60,7 @@ class CtrlAviary(BaseAviary):
             Whether to draw the drones' axes and the GUI RPMs sliders.
 
         """
+        vision_attributes = True if obs == ObservationType.RGB else False
 
         self.OBS_TYPE = obs
 
@@ -73,7 +76,8 @@ class CtrlAviary(BaseAviary):
                          record=record,
                          obstacles=True,
                          user_debug_gui=user_debug_gui,
-                         output_folder=output_folder
+                         output_folder=output_folder,
+                         vision_attributes=vision_attributes
                          )
 
     ################################################################################
@@ -84,10 +88,16 @@ class CtrlAviary(BaseAviary):
         Overrides BaseAviary's method.
 
         """
+        current_directory = os.getcwd()
+        parent_directory = os.path.dirname(current_directory)
+        target_directory = os.path.join(current_directory, "obstacles\\box2.urdf")
         if self.OBS_TYPE == ObservationType.RGB:
-            p.loadURDF("block.urdf",
-                       [1, 0, .1],
+            p.loadURDF(target_directory,
+                       [1, 0, 0],
                        p.getQuaternionFromEuler([0, 0, 0]),
+                       physicsClientId=self.CLIENT
+                       )
+            p.loadURDF("samurai.urdf",
                        physicsClientId=self.CLIENT
                        )
             p.loadURDF("cube_small.urdf",
@@ -95,20 +105,22 @@ class CtrlAviary(BaseAviary):
                        p.getQuaternionFromEuler([0, 0, 0]),
                        physicsClientId=self.CLIENT
                        )
-            p.loadURDF("duck_vhacd.urdf",
-                       [-1, 0, .1],
-                       p.getQuaternionFromEuler([0, 0, 0]),
-                       physicsClientId=self.CLIENT
-                       )
-            p.loadURDF("teddy_vhacd.urdf",
-                       [0, -1, .1],
-                       p.getQuaternionFromEuler([0, 0, 0]),
-                       physicsClientId=self.CLIENT
-                       )
-            p.loadURDF("../obstacles/box2.urdf",
-                       [0, -1, .1],
-
-                       )
+            # p.loadURDF("duck_vhacd.urdf",
+            #            [-1, 0, .1],
+            #            p.getQuaternionFromEuler([0, 0, 0]),
+            #            physicsClientId=self.CLIENT
+            #            )
+            # p.loadURDF("teddy_vhacd.urdf",
+            #            [0, -1, .1],
+            #            p.getQuaternionFromEuler([0, 0, 0]),
+            #            physicsClientId=self.CLIENT
+            #            )
+            # p.loadURDF("../obstacles/box2.urdf",
+            #            [0, -1, .1],
+            #            p.getQuaternionFromEuler([0, 0, 0]),
+            #            [0, -1, .1],
+            #            physicsClientId=self.CLIENT
+            #            )
         else:
             pass
     def _actionSpace(self):

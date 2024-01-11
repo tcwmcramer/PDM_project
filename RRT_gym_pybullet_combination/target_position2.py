@@ -45,8 +45,8 @@ def run(
 
     #### Define obstacles and waypoints ########################
     startpos = (0., 0., 4.)
-    endpos = (5., 5., 0.)
-    urdf_path = "../RRT_gym_pybullet_combination/obstacles/random_rubble2.urdf"  # Update with your actual URDF file path
+    endpos = (3., 3., 0.)
+    urdf_path = "../RRT_gym_pybullet_combination/obstacles/random_rubble2.urdf"
     obstacles = parse_urdf(urdf_path)
     n_iter = 200
     radius = 1.5
