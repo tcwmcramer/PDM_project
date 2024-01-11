@@ -104,7 +104,7 @@ def run(
 
 
 
-    PERIOD = 30
+    PERIOD = 15
     NUM_WP = control_freq_hz*PERIOD
     TARGET_POS = np.zeros((NUM_WP, 3))
 

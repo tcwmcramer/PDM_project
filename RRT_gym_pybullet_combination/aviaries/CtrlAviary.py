@@ -23,7 +23,7 @@ class CtrlAviary(BaseAviary):
                  pyb_freq: int = 240,
                  ctrl_freq: int = 240,
                  gui=False,
-                 record=False,
+                 record=True,
                  obstacles=True,
                  user_debug_gui=True,
                  output_folder='results',
@@ -74,7 +74,7 @@ class CtrlAviary(BaseAviary):
                          ctrl_freq=ctrl_freq,
                          gui=gui,
                          record=record,
-                         obstacles=True,
+                         obstacles=obstacles,
                          user_debug_gui=user_debug_gui,
                          output_folder=output_folder,
                          vision_attributes=vision_attributes
