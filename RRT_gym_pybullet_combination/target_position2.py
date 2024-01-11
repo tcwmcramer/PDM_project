@@ -6,6 +6,7 @@ import os
 import time
 import argparse
 import numpy as np
+import threading
 from scipy import interpolate
 from Smoothpath import smooth_path, plot_smoothed_path
 from RTT_star import pathSearch, all_urdf
@@ -60,9 +61,8 @@ def run(
 
     #------------------------------------- Define obstacles and waypoints -------------------------------------#
 
-
-    startpos = (0., 0., 3.)
-    endpos = (3., 3., 1.)
+    startpos = (5., 5., 3.)
+    endpos = (0., 0., 0.)
     obstacles = all_urdf()
     n_iter = 200
     radius = 1.5
@@ -70,7 +70,8 @@ def run(
 
     waypoints = pathSearch(startpos, endpos,obstacles, n_iter, radius, stepSize)
     path_smooth = smooth_path(waypoints)
-    plot_smoothed_path(waypoints, path_smooth)
+    plot = plot_smoothed_path(waypoints, path_smooth, obstacles)
+
 
 
     #---------------------------------------------- Initialize the simulation ----------------------------------------#
@@ -93,6 +94,13 @@ def run(
 
 
     #------------------------------------------- Initialize the trajectories -----------------------------------------#
+
+
+    matplotlib_thread = threading.Thread(target=plot)
+
+    # Start the threads
+    matplotlib_thread.start()
+
 
 
 
@@ -162,6 +170,9 @@ def run(
         if gui:
             sync(i, START, env.CTRL_TIMESTEP)
 
+        # Wait for both threads to finish
+
+    matplotlib_thread.join()
     #### Close the environment #################################
     env.close()
 
@@ -172,6 +183,7 @@ def run(
     #### Plot the simulation results ###########################
     # if plot:
     #     logger.plot()
+
 
 
 if __name__ == "__main__":

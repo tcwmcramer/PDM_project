@@ -600,8 +600,8 @@ def all_urdf():
 
 if __name__ == '__main__':
 
-    startpos = (1., 2., 3.)
-    endpos = (5., 5., 5.) 
+    startpos = (5., 5., 3.)
+    endpos = (0., 0., 0.)
     #urdf_path = "../RRT_gym_pybullet_combination/obstacles/random_rubble_1.urdf"  # Update with your actual URDF file path
     obstacles = all_urdf()
     last_ellipsoid = None
