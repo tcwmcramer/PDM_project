@@ -333,8 +333,11 @@ def update_informed_set(graph,
 
     return center, x_axis, x_radius, y_radius, z_radius
 
-def RRT_star_informed(startpos, endpos, obstacles, n_iter, radius, stepSize, initial_radius_fraction=2.5):
+def RRT_star_informed(startpos, endpos, obstacles, n_iter, radius, stepSize, initial_radius_fraction):
     G = Graph(startpos, endpos)
+
+    # Initialize the ellipsoid variables
+    last_ellipsoid = None
 
     (informed_set_center,
      informed_set_x_axis,
@@ -418,7 +421,7 @@ def RRT_star_informed(startpos, endpos, obstacles, n_iter, radius, stepSize, ini
 
             G.success = True
             print('success')
-    return G
+    return G, last_ellipsoid
 
 
 def dijkstra(G):
@@ -457,7 +460,7 @@ def dijkstra(G):
 
 
 
-def plot(G, obstacles, path=None):
+def plot(G, obstacles, path=None, informed_ellipsoid=None):
     '''
     Plot RRT, obstacles and shortest path
     '''
@@ -494,6 +497,16 @@ def plot(G, obstacles, path=None):
         paths = [(path[i], path[i+1]) for i in range(len(path)-1)]
         lc2 = Line3DCollection(paths, colors='blue', linewidths=3)
         ax.add_collection(lc2)
+
+    # Plot final ellipsoid if provided
+    if informed_ellipsoid is not None:
+        center, x_axis, x_radius, y_radius, z_radius = informed_ellipsoid
+        u = np.linspace(0, 2 * np.pi, 100)
+        v = np.linspace(0, np.pi, 100)
+        x = center[0] + x_radius * np.outer(np.cos(u), np.sin(v))
+        y = center[1] + y_radius * np.outer(np.sin(u), np.sin(v))
+        z = center[2] + z_radius * np.outer(np.ones(np.size(u)), np.cos(v))
+        ax.plot_surface(x, y, z, color='red', alpha=0.2)
 
     ax.autoscale()
     ax.margins(0.1)
@@ -558,21 +571,21 @@ def parse_urdf(urdf_file):
 
 if __name__ == '__main__':
 
-    startpos = (10., 0., 0.)
+    startpos = (10., 10., 0.)
     endpos = (5., 5., 5.)
     urdf_path = "../RRT_gym_pybullet_combination/obstacles/random_rubble2.urdf"  # Update with your actual URDF file path
     obstacles = parse_urdf(urdf_path)
+    last_ellipsoid = None
     radius = 1.5
     n_iter = 200
     stepSize = 0.7
 
     # G = RRT_star(startpos, endpos, obstacles, n_iter, radius, stepSize)
     # G = RRT(startpos, endpos, obstacles, n_iter, radius, stepSize)
-    G = RRT_star_informed(startpos, endpos, obstacles, n_iter, radius, stepSize)
-
+    G, last_ellipsoid = RRT_star_informed(startpos, endpos, obstacles, n_iter, radius, stepSize, initial_radius_fraction=2.5)
     if G.success:
         path = dijkstra(G)
         print(path)
-        plot(G, obstacles, path)
+        plot(G, obstacles, path=path, informed_ellipsoid=last_ellipsoid)
     else:
         print('NO PATH FOUND')
