@@ -90,7 +90,7 @@ def generate_urdf_files(num_runs, num_shapes, size_bounds, orientation_bounds, o
 
 if __name__ == "__main__":
     # Set the common values for other parameters
-    num_shapes = 15
+    num_shapes = 5
     size_bounds = "0.2,0.5"
     orientation_bounds = "-1.0,1.0"
     output_directory = "obstacles"

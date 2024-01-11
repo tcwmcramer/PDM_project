@@ -4,6 +4,7 @@ Copyright (c) 2019 Fanjin Zeng
 This work is licensed under the terms of the MIT license, see <https://opensource.org/licenses/MIT>.
 '''
 
+import os
 import numpy as np
 from random import random
 import matplotlib.pyplot as plt
@@ -541,8 +542,8 @@ def parse_urdf(urdf_file):
             if collision_geometry is not None:
                 if collision_geometry.tag == 'sphere':
                     radius_collision = float(collision_geometry.get('radius'))
-                elif collision_geometry.tag == 'cylinder':
-                    radius_collision = float(collision_geometry.get('radius'))
+                # elif collision_geometry.tag == 'cylinder':
+                #     radius_collision = float(collision_geometry.get('radius'))
                 elif collision_geometry.tag == 'box':
                     # Calculate the radius for the sphere around the box
                     size = [float(s) for s in collision_geometry.get('size').split()]
@@ -569,12 +570,40 @@ def parse_urdf(urdf_file):
 
     return matrix
 
+
+def all_urdf():
+
+
+    current_directory = os.getcwd()
+
+    # Construct the path to the "obstacles" folder
+    obstacles_folder = os.path.join(current_directory, "obstacles")
+
+    # Get a list of all files in the "obstacles" folder
+    all_files = os.listdir(obstacles_folder)
+
+    # Filter out only the URDF files
+    urdf_files = [file for file in all_files if file.endswith(".urdf")]
+
+    obstacles = np.array([])
+
+    for urdf_file in urdf_files:
+        # Construct the full path to the URDF file
+        urdf_path = os.path.join(obstacles_folder, urdf_file)
+        matrix = parse_urdf(urdf_path)
+        if not obstacles.size:
+            obstacles = matrix
+        else:
+            obstacles = np.vstack((obstacles, matrix))
+    return obstacles
+
+
 if __name__ == '__main__':
 
-    startpos = (10., 10., 0.)
-    endpos = (5., 5., 5.)
-    urdf_path = "../RRT_gym_pybullet_combination/obstacles/random_rubble2.urdf"  # Update with your actual URDF file path
-    obstacles = parse_urdf(urdf_path)
+    startpos = (1., 2., 3.)
+    endpos = (5., 5., 5.) 
+    #urdf_path = "../RRT_gym_pybullet_combination/obstacles/random_rubble_1.urdf"  # Update with your actual URDF file path
+    obstacles = all_urdf()
     last_ellipsoid = None
     radius = 1.5
     n_iter = 200

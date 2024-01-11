@@ -8,7 +8,7 @@ import argparse
 import numpy as np
 from scipy import interpolate
 from Smoothpath import smooth_path, plot_smoothed_path
-from RTT_star import pathSearch, parse_urdf
+from RTT_star import pathSearch, all_urdf
 import pybullet as p
 
 from gym_pybullet_drones.utils.utils import sync, str2bool
@@ -16,7 +16,7 @@ from gym_pybullet_drones.utils.enums import DroneModel, Physics
 from gym_pybullet_drones.control.DSLPIDControl import DSLPIDControl
 
 from RRT_gym_pybullet_combination.aviaries.CustomAviary import CustomAviary
-from RRT_gym_pybullet_combination.random_rubble_gen import generate_urdf
+from RRT_gym_pybullet_combination.random_rubble_gen import generate_urdf_files
 # from gym_pybullet_drones.utils.Logger import Logger
 
 
@@ -49,18 +49,13 @@ def run(
 
     # Set the values directly in the script
     num_shapes = 5
-    position_bounds = "-2.0,2.0"
-    size_bounds = "1.2,1.8"
+    size_bounds = "0.2,0.5"
     orientation_bounds = "-1.0,1.0"
     output_directory = "obstacles"
+    num_runs = 5
 
-    # Set the output path to the desired directory and file name
-
-    urdf_content = generate_urdf(num_shapes, position_bounds, size_bounds, orientation_bounds)
-    output_path = os.path.join(output_directory, "random_rubble.urdf")
-
-    with open(output_path, "w") as urdf_file:
-        urdf_file.write(urdf_content)
+    # Call the function to generate URDFs
+    generate_urdf_files(num_runs, num_shapes, size_bounds, orientation_bounds, output_directory)
 
 
     #------------------------------------- Define obstacles and waypoints -------------------------------------#
@@ -68,15 +63,14 @@ def run(
 
     startpos = (0., 0., 3.)
     endpos = (3., 3., 1.)
-    urdf_path = "../RRT_gym_pybullet_combination/obstacles/random_rubble.urdf"
-    obstacles = parse_urdf(urdf_path)
+    obstacles = all_urdf()
     n_iter = 200
     radius = 1.5
     stepSize = 0.7
 
     waypoints = pathSearch(startpos, endpos,obstacles, n_iter, radius, stepSize)
     path_smooth = smooth_path(waypoints)
-    # plot_smoothed_path(waypoints, path_smooth)
+    plot_smoothed_path(waypoints, path_smooth)
 
 
     #---------------------------------------------- Initialize the simulation ----------------------------------------#
