@@ -2,7 +2,7 @@
 Script that combines everything
 """
 
-
+import os
 import time
 import argparse
 import numpy as np
@@ -13,9 +13,10 @@ import pybullet as p
 
 from gym_pybullet_drones.utils.utils import sync, str2bool
 from gym_pybullet_drones.utils.enums import DroneModel, Physics
-# from gym_pybullet_drones.envs.CtrlAviary import CtrlAviary
-from RRT_gym_pybullet_combination.aviaries.CustomAviary import CustomAviary
 from gym_pybullet_drones.control.DSLPIDControl import DSLPIDControl
+
+from RRT_gym_pybullet_combination.aviaries.CustomAviary import CustomAviary
+from RRT_gym_pybullet_combination.random_rubble_gen import generate_urdf
 # from gym_pybullet_drones.utils.Logger import Logger
 
 
@@ -43,24 +44,45 @@ def run(
         colab=DEFAULT_COLAB
     ):
 
-    #### Define obstacles and waypoints ########################
-    startpos = (0., 0., 4.)
-    endpos = (3., 3., 0.)
+    #--------------------- Generate random rubbles and write to the 'obstacles' folder -----------------------------#
+
+
+    # Set the values directly in the script
+    num_shapes = 5
+    position_bounds = "-2.0,2.0"
+    size_bounds = "1.2,1.8"
+    orientation_bounds = "-1.0,1.0"
+    output_directory = "obstacles"
+
+    # Set the output path to the desired directory and file name
+
+    urdf_content = generate_urdf(num_shapes, position_bounds, size_bounds, orientation_bounds)
+    output_path = os.path.join(output_directory, "random_rubble.urdf")
+
+    with open(output_path, "w") as urdf_file:
+        urdf_file.write(urdf_content)
+
+
+    #------------------------------------- Define obstacles and waypoints -------------------------------------#
+
+
+    startpos = (0., 0., 3.)
+    endpos = (3., 3., 1.)
     urdf_path = "../RRT_gym_pybullet_combination/obstacles/random_rubble.urdf"
     obstacles = parse_urdf(urdf_path)
     n_iter = 200
     radius = 1.5
     stepSize = 0.7
 
-
     waypoints = pathSearch(startpos, endpos,obstacles, n_iter, radius, stepSize)
-
-
     path_smooth = smooth_path(waypoints)
     # plot_smoothed_path(waypoints, path_smooth)
 
 
-    #### Initialize the simulation #############################
+    #---------------------------------------------- Initialize the simulation ----------------------------------------#
+
+
+
     INIT_XYZS = np.array([path_smooth[0]])
     env = CustomAviary(drone_model=drone,
                      num_drones=1,
@@ -74,18 +96,15 @@ def run(
                      obstacles=True
                      )
 
-    # obstacle_id = p.loadURDF("../RRT_gym_pybullet_combination/obstacles/box2.urdf")
-    # position = [0,0,0]
-    # orientation = [0,0,0,1]
-    # p.resetBasePositionAndOrientation(obstacle_id, position, orientation)
 
 
-    #### Initialize the trajectories ###########################
+    #------------------------------------------- Initialize the trajectories -----------------------------------------#
+
+
+
     PERIOD = 30
     NUM_WP = control_freq_hz*PERIOD
     TARGET_POS = np.zeros((NUM_WP, 3))
-
-
 
 
     interp_func = interpolate.interp1d(
@@ -115,7 +134,10 @@ def run(
     #### Initialize the controllers ############################
     ctrl = DSLPIDControl(drone_model=drone)
 
-    #### Run the simulation ####################################
+
+    #--------------------------------------------- Run the simulation -----------------------------------------------#
+
+
     action = np.zeros((1,4))
     START = time.time()
     for i in range(0, NUM_WP):
