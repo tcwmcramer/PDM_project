@@ -14,14 +14,14 @@ import pybullet as p
 from gym_pybullet_drones.utils.utils import sync, str2bool
 from gym_pybullet_drones.utils.enums import DroneModel, Physics
 # from gym_pybullet_drones.envs.CtrlAviary import CtrlAviary
-from RRT_gym_pybullet_combination.aviaries.CtrlAviary import CtrlAviary
+from RRT_gym_pybullet_combination.aviaries.CustomAviary import CustomAviary
 from gym_pybullet_drones.control.DSLPIDControl import DSLPIDControl
 # from gym_pybullet_drones.utils.Logger import Logger
 
 
 DEFAULT_DRONE = DroneModel('cf2p')
 DEFAULT_GUI = True
-DEFAULT_RECORD_VIDEO = False
+DEFAULT_RECORD_VIDEO = True
 DEFAULT_SIMULATION_FREQ_HZ = 240
 DEFAULT_CONTROL_FREQ_HZ = 48
 DEFAULT_DURATION_SEC = 12
@@ -57,12 +57,12 @@ def run(
 
 
     path_smooth = smooth_path(waypoints)
-    plot_smoothed_path(waypoints, path_smooth)
+    # plot_smoothed_path(waypoints, path_smooth)
 
 
     #### Initialize the simulation #############################
     INIT_XYZS = np.array([path_smooth[0]])
-    env = CtrlAviary(drone_model=drone,
+    env = CustomAviary(drone_model=drone,
                      num_drones=1,
                      initial_xyzs=INIT_XYZS,
                      physics=Physics.PYB_DW,
@@ -97,7 +97,7 @@ def run(
     new_indices = np.linspace(0, 1, num=NUM_WP)
     # print(path_smooth)
     TARGET_POS = interp_func(new_indices)
-    print(TARGET_POS)
+    # print(TARGET_POS)
     # TARGET_POS = TARGET_POS[:NUM_WP]
 
     wp_counter = 0  #As it's only a single drone, no need to keep multiple counters
