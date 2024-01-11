@@ -8,18 +8,20 @@ import argparse
 import numpy as np
 from scipy import interpolate
 from Smoothpath import smooth_path, plot_smoothed_path
-from RTT_star import pathSearch
+from RTT_star import pathSearch, parse_urdf
+import pybullet as p
 
 from gym_pybullet_drones.utils.utils import sync, str2bool
 from gym_pybullet_drones.utils.enums import DroneModel, Physics
-from gym_pybullet_drones.envs.CtrlAviary import CtrlAviary
+# from gym_pybullet_drones.envs.CtrlAviary import CtrlAviary
+from RRT_gym_pybullet_combination.aviaries.CustomAviary import CustomAviary
 from gym_pybullet_drones.control.DSLPIDControl import DSLPIDControl
 # from gym_pybullet_drones.utils.Logger import Logger
 
 
 DEFAULT_DRONE = DroneModel('cf2p')
 DEFAULT_GUI = True
-DEFAULT_RECORD_VIDEO = False
+DEFAULT_RECORD_VIDEO = True
 DEFAULT_SIMULATION_FREQ_HZ = 240
 DEFAULT_CONTROL_FREQ_HZ = 48
 DEFAULT_DURATION_SEC = 12
@@ -42,9 +44,10 @@ def run(
     ):
 
     #### Define obstacles and waypoints ########################
-    startpos = (0., 0., 2.)
-    endpos = (5., 5., 0.)
-    obstacles = [(1., 1., 1.), (2., 2., 2.)]
+    startpos = (0., 0., 4.)
+    endpos = (3., 3., 0.)
+    urdf_path = "../RRT_gym_pybullet_combination/obstacles/random_rubble2.urdf"
+    obstacles = parse_urdf(urdf_path)
     n_iter = 200
     radius = 1.5
     stepSize = 0.7
@@ -54,12 +57,12 @@ def run(
 
 
     path_smooth = smooth_path(waypoints)
-    plot_smoothed_path(waypoints, path_smooth)
+    # plot_smoothed_path(waypoints, path_smooth)
 
 
     #### Initialize the simulation #############################
     INIT_XYZS = np.array([path_smooth[0]])
-    env = CtrlAviary(drone_model=drone,
+    env = CustomAviary(drone_model=drone,
                      num_drones=1,
                      initial_xyzs=INIT_XYZS,
                      physics=Physics.PYB_DW,
@@ -71,7 +74,10 @@ def run(
                      obstacles=True
                      )
 
-
+    # obstacle_id = p.loadURDF("../RRT_gym_pybullet_combination/obstacles/box2.urdf")
+    # position = [0,0,0]
+    # orientation = [0,0,0,1]
+    # p.resetBasePositionAndOrientation(obstacle_id, position, orientation)
 
 
     #### Initialize the trajectories ###########################
@@ -91,7 +97,7 @@ def run(
     new_indices = np.linspace(0, 1, num=NUM_WP)
     # print(path_smooth)
     TARGET_POS = interp_func(new_indices)
-    print(TARGET_POS)
+    # print(TARGET_POS)
     # TARGET_POS = TARGET_POS[:NUM_WP]
 
     wp_counter = 0  #As it's only a single drone, no need to keep multiple counters
