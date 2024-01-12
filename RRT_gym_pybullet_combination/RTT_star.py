@@ -6,6 +6,7 @@ This work is licensed under the terms of the MIT license, see <https://opensourc
 
 import os
 import numpy as np
+import math
 from random import random
 import matplotlib.pyplot as plt
 from matplotlib import collections  as mc
@@ -547,8 +548,13 @@ def parse_urdf(urdf_file):
                 elif collision_geometry.tag == 'box':
                     # Calculate the radius for the sphere around the box
                     size = [float(s) for s in collision_geometry.get('size').split()]
-                    diagonal_length = np.linalg.norm(size) / 2.0
-                    radius_collision = diagonal_length
+                    # Sort the size list in descending order
+                    sorted_size = sorted(size, reverse=True)
+                    # Take the two largest values
+                    largest_values = sorted_size[:2]
+                    # Calculate the diagonal length using the two largest values
+                    diagonal_length = math.sqrt(sum([v ** 2 for v in largest_values]))
+                    radius_collision = diagonal_length / 2.0
                 else:
                     # Handle other geometry types if necessary
                     radius_collision = None

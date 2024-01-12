@@ -10,9 +10,9 @@ def generate_urdf_content(num_shapes, position_bounds, size_bounds, orientation_
     urdf = '<?xml version="1.0"?>\n'
     urdf += '<robot name="rubble_robot" xmlns:xacro="http://ros.org/wiki/xacro">\n'
     urdf += '  <!-- Define materials if needed -->\n'
-    urdf += '  <!-- <material name="rubble_material">\n'
-    urdf += '    <color rgba="0.5 0.5 0.5 1" />\n'
-    urdf += '  </material> -->\n\n'
+    urdf += '  <material name="dark_grey">\n'
+    urdf += '    <color rgba="0.2 0.2 0.2 1" />\n'  # Adjust the RGBA values for your desired dark grey
+    urdf += '  </material>\n\n'
 
     # Define root link
     urdf += '  <link name="base_link">\n'
@@ -45,8 +45,8 @@ def generate_urdf_content(num_shapes, position_bounds, size_bounds, orientation_
             geometry = f'<sphere radius="{size[0]}"/>'
 
         # Add link to the URDF
-        urdf += f'  <!-- Define link {i+1} -->\n'
-        urdf += f'  <link name="rubble_link_{i+1}_collision">\n'
+        urdf += f'  <!-- Define link {i + 1} -->\n'
+        urdf += f'  <link name="rubble_link_{i + 1}_collision">\n'
         urdf += '    <inertial>\n'
         urdf += '      <mass value="0.0"/>\n'
         urdf += '      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />\n'
@@ -56,6 +56,13 @@ def generate_urdf_content(num_shapes, position_bounds, size_bounds, orientation_
         urdf += f'      <geometry>{geometry}</geometry>\n'
         urdf += f'      <origin xyz="{xyz[0]} {xyz[1]} {xyz[2]}" rpy="{rpy[0]} {rpy[1]} {rpy[2]}" />\n'
         urdf += '    </collision>\n'
+        urdf += '    <visual>\n'
+        urdf += '      <geometry>\n'
+        urdf += f'        {geometry}\n'  # Use the same geometry as in the collision
+        urdf += '      </geometry>\n'
+        urdf += f'      <origin xyz="{xyz[0]} {xyz[1]} {xyz[2]}" rpy="{rpy[0]} {rpy[1]} {rpy[2]}" />\n'
+        urdf += '      <material name="dark_grey" />\n'  # Apply the dark grey material
+        urdf += '    </visual>\n'
         urdf += '  </link>\n'
 
         # Add joint to the joint_tags
@@ -76,7 +83,7 @@ def generate_urdf_content(num_shapes, position_bounds, size_bounds, orientation_
 def generate_urdf_files(num_runs, num_shapes, size_bounds, orientation_bounds, output_directory):
     for run in range(num_runs):
         # Generate random position bounds between 0 and 5 for each run
-        position_bounds = f"{random.uniform(0, 5)},{random.uniform(0, 5)}"
+        position_bounds = f"{random.uniform(0, run+1)},{random.uniform(0, run+1)}"
 
         # Generate URDF content
         urdf_content = generate_urdf_content(num_shapes, position_bounds, size_bounds, orientation_bounds)
@@ -90,7 +97,7 @@ def generate_urdf_files(num_runs, num_shapes, size_bounds, orientation_bounds, o
 
 if __name__ == "__main__":
     # Set the common values for other parameters
-    num_shapes = 5
+    num_shapes = 10
     size_bounds = "0.2,0.5"
     orientation_bounds = "-1.0,1.0"
     output_directory = "obstacles"
