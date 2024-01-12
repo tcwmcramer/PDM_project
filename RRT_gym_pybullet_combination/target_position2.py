@@ -2,24 +2,28 @@
 Script that combines everything
 """
 
-
+import os
 import time
 import argparse
 import numpy as np
+import threading
 from scipy import interpolate
 from Smoothpath import smooth_path, plot_smoothed_path
-from RTT_star import pathSearch
+from RTT_star import pathSearch, all_urdf
+import pybullet as p
 
 from gym_pybullet_drones.utils.utils import sync, str2bool
 from gym_pybullet_drones.utils.enums import DroneModel, Physics
-from gym_pybullet_drones.envs.CtrlAviary import CtrlAviary
 from gym_pybullet_drones.control.DSLPIDControl import DSLPIDControl
+
+from RRT_gym_pybullet_combination.aviaries.CustomAviary import CustomAviary
+from RRT_gym_pybullet_combination.random_rubble_gen import generate_urdf_files
 # from gym_pybullet_drones.utils.Logger import Logger
 
 
 DEFAULT_DRONE = DroneModel('cf2p')
 DEFAULT_GUI = True
-DEFAULT_RECORD_VIDEO = False
+DEFAULT_RECORD_VIDEO = True
 DEFAULT_SIMULATION_FREQ_HZ = 240
 DEFAULT_CONTROL_FREQ_HZ = 48
 DEFAULT_DURATION_SEC = 12
@@ -41,25 +45,41 @@ def run(
         colab=DEFAULT_COLAB
     ):
 
-    #### Define obstacles and waypoints ########################
-    startpos = (0., 0., 2.)
-    endpos = (5., 5., 0.)
-    obstacles = [(1., 1., 1.), (2., 2., 2.)]
+    #--------------------- Generate random rubbles and write to the 'obstacles' folder -----------------------------#
+
+
+    # Set the values directly in the script
+    num_shapes = 5
+    size_bounds = "0.2,0.5"
+    orientation_bounds = "-1.0,1.0"
+    output_directory = "obstacles"
+    num_runs = 5
+
+    # Call the function to generate URDFs
+    generate_urdf_files(num_runs, num_shapes, size_bounds, orientation_bounds, output_directory)
+
+
+    #------------------------------------- Define obstacles and waypoints -------------------------------------#
+
+    startpos = (5., 5., 3.)
+    endpos = (0., 0., 0.)
+    obstacles = all_urdf()
     n_iter = 200
     radius = 1.5
     stepSize = 0.7
 
-
     waypoints = pathSearch(startpos, endpos,obstacles, n_iter, radius, stepSize)
-
-
     path_smooth = smooth_path(waypoints)
-    plot_smoothed_path(waypoints, path_smooth)
+    plot = plot_smoothed_path(waypoints, path_smooth, obstacles)
 
 
-    #### Initialize the simulation #############################
+
+    #---------------------------------------------- Initialize the simulation ----------------------------------------#
+
+
+
     INIT_XYZS = np.array([path_smooth[0]])
-    env = CtrlAviary(drone_model=drone,
+    env = CustomAviary(drone_model=drone,
                      num_drones=1,
                      initial_xyzs=INIT_XYZS,
                      physics=Physics.PYB_DW,
@@ -73,13 +93,20 @@ def run(
 
 
 
+    #------------------------------------------- Initialize the trajectories -----------------------------------------#
 
-    #### Initialize the trajectories ###########################
+
+    matplotlib_thread = threading.Thread(target=plot)
+
+    # Start the threads
+    matplotlib_thread.start()
+
+
+
+
     PERIOD = 30
     NUM_WP = control_freq_hz*PERIOD
     TARGET_POS = np.zeros((NUM_WP, 3))
-
-
 
 
     interp_func = interpolate.interp1d(
@@ -91,7 +118,7 @@ def run(
     new_indices = np.linspace(0, 1, num=NUM_WP)
     # print(path_smooth)
     TARGET_POS = interp_func(new_indices)
-    print(TARGET_POS)
+    # print(TARGET_POS)
     # TARGET_POS = TARGET_POS[:NUM_WP]
 
     wp_counter = 0  #As it's only a single drone, no need to keep multiple counters
@@ -109,7 +136,10 @@ def run(
     #### Initialize the controllers ############################
     ctrl = DSLPIDControl(drone_model=drone)
 
-    #### Run the simulation ####################################
+
+    #--------------------------------------------- Run the simulation -----------------------------------------------#
+
+
     action = np.zeros((1,4))
     START = time.time()
     for i in range(0, NUM_WP):
@@ -140,6 +170,9 @@ def run(
         if gui:
             sync(i, START, env.CTRL_TIMESTEP)
 
+        # Wait for both threads to finish
+
+    matplotlib_thread.join()
     #### Close the environment #################################
     env.close()
 
@@ -150,6 +183,7 @@ def run(
     #### Plot the simulation results ###########################
     # if plot:
     #     logger.plot()
+
 
 
 if __name__ == "__main__":
