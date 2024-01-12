@@ -514,12 +514,16 @@ def plot(G, obstacles, path=None, informed_ellipsoid=None):
 
 
 def pathSearch(startpos, endpos, obstacles, n_iter, radius, stepSize):
-    G = RRT_star(startpos, endpos, obstacles, n_iter, radius, stepSize)
+    G = RRT_star_informed(startpos, endpos, obstacles, n_iter, radius, stepSize)
+    # G = RRT_star(startpos, endpos, obstacles, n_iter, radius, stepSize)
+
     if G.success:
         path = dijkstra(G)
         # plot(G, obstacles, radius, path)
         return path
-
+    else:
+        print('NO PATH FOUND')
+        return None
 
 
 def parse_urdf(urdf_file):
