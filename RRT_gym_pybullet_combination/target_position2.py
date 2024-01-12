@@ -18,6 +18,7 @@ from gym_pybullet_drones.control.DSLPIDControl import DSLPIDControl
 
 from RRT_gym_pybullet_combination.aviaries.CustomAviary import CustomAviary
 from RRT_gym_pybullet_combination.random_rubble_gen import generate_urdf_files
+from RRT_gym_pybullet_combination.pillars_gen import generate_multiple_pillar_urdf_files
 # from gym_pybullet_drones.utils.Logger import Logger
 
 
@@ -47,12 +48,18 @@ def run(
 
     #--------------------- Generate random rubbles and write to the 'obstacles' folder -----------------------------#
 
+    num_files = 5
+    num_cubes = 10
+    output_directory = "obstacles"
 
-    # Set the values directly in the script
+    os.makedirs(output_directory, exist_ok=True)
+
+    generate_multiple_pillar_urdf_files(num_files, num_cubes, output_directory)
+
+
     num_shapes = 10
     size_bounds = "0.2,0.5"
     orientation_bounds = "-1.0,1.0"
-    output_directory = "obstacles"
     num_runs = 5
 
     # Call the function to generate URDFs

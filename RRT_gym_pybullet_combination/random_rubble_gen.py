@@ -83,7 +83,7 @@ def generate_urdf_content(num_shapes, position_bounds, size_bounds, orientation_
 def generate_urdf_files(num_runs, num_shapes, size_bounds, orientation_bounds, output_directory):
     for run in range(num_runs):
         # Generate random position bounds between 0 and 5 for each run
-        position_bounds = f"{random.uniform(0, run+1)},{random.uniform(0, run+1)}"
+        position_bounds = f"{random.uniform(0.3, run+1)},{random.uniform(0.3, run+1)}"
 
         # Generate URDF content
         urdf_content = generate_urdf_content(num_shapes, position_bounds, size_bounds, orientation_bounds)
