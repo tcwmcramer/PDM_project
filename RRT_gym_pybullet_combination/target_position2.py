@@ -49,7 +49,7 @@ def run(
 
 
     # Set the values directly in the script
-    num_shapes = 5
+    num_shapes = 10
     size_bounds = "0.2,0.5"
     orientation_bounds = "-1.0,1.0"
     output_directory = "obstacles"
@@ -68,7 +68,7 @@ def run(
     radius = 1.5
     stepSize = 0.7
 
-    waypoints = pathSearch(startpos, endpos,obstacles, n_iter, radius, stepSize)
+    waypoints = pathSearch(startpos, endpos, obstacles, n_iter, radius, stepSize)
     path_smooth = smooth_path(waypoints)
     plot = plot_smoothed_path(waypoints, path_smooth, obstacles)
 
