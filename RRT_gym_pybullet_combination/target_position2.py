@@ -7,6 +7,7 @@ import time
 import argparse
 import numpy as np
 import threading
+import random
 from scipy import interpolate
 from Smoothpath import smooth_path, plot_smoothed_path
 from RTT_star import pathSearch, all_urdf
@@ -68,8 +69,18 @@ def run(
 
     #------------------------------------- Define obstacles and waypoints -------------------------------------#
 
-    startpos = (5., 5., 3.)
-    endpos = (0., 0., 0.)
+    startpos = (
+        6,  # fixed x-coordinate
+        random.uniform(0, 5),  # random y-coordinate between 0 and 5
+        random.uniform(0, 4)  # random z-coordinate between 0 and 4
+    )
+
+    # Randomize endpos
+    endpos = (
+        -1,  # fixed x-coordinate
+        random.uniform(0, 5),  # fixed y-coordinate
+        2  # random z-coordinate between 0 and 4
+    )
     obstacles = all_urdf()
     n_iter = 200
     radius = 1.5
