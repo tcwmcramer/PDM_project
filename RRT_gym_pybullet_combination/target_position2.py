@@ -17,7 +17,7 @@ from gym_pybullet_drones.control.DSLPIDControl import DSLPIDControl
 
 from RRT_gym_pybullet_combination.aviaries.CustomAviary import CustomAviary
 from RRT_gym_pybullet_combination.random_rubble_gen import generate_urdf
-# from gym_pybullet_drones.utils.Logger import Logger
+from gym_pybullet_drones.utils.Logger import Logger
 
 
 DEFAULT_DRONE = DroneModel('cf2p')
@@ -28,7 +28,15 @@ DEFAULT_CONTROL_FREQ_HZ = 48
 DEFAULT_DURATION_SEC = 12
 DEFAULT_OUTPUT_FOLDER = 'results'
 DEFAULT_COLAB = False
-
+CLIENT = p.connect(p.DIRECT)
+CAM_VIEW = p.computeViewMatrixFromYawPitchRoll(distance=5,
+                                                yaw=-30,
+                                                pitch=-30,
+                                                roll=0,
+                                                cameraTargetPosition=[0, 0, 0],
+                                                upAxisIndex=2,
+                                                physicsClientId=CLIENT
+                                                )
 
 
 
@@ -41,7 +49,9 @@ def run(
         duration_sec=DEFAULT_DURATION_SEC,
         output_folder=DEFAULT_OUTPUT_FOLDER,
         plot=True,
-        colab=DEFAULT_COLAB
+        colab=DEFAULT_COLAB,
+        client = CLIENT,
+        camera_view = CAM_VIEW
     ):
 
     #--------------------- Generate random rubbles and write to the 'obstacles' folder -----------------------------#
@@ -76,7 +86,7 @@ def run(
 
     waypoints = pathSearch(startpos, endpos,obstacles, n_iter, radius, stepSize)
     path_smooth = smooth_path(waypoints)
-    # plot_smoothed_path(waypoints, path_smooth)
+    plot_smoothed_path(waypoints, path_smooth)
 
 
     #---------------------------------------------- Initialize the simulation ----------------------------------------#
@@ -93,7 +103,9 @@ def run(
                      ctrl_freq=control_freq_hz, #the frequency at which control commands are applied to the simulated drones or agents within the environment?
                      gui=gui,
                      record=record_video,
-                     obstacles=True
+                     obstacles=True,
+                    # camera_view= camera_view,
+                    #    client = client
                      )
 
 
@@ -105,7 +117,7 @@ def run(
     PERIOD = 15
     NUM_WP = control_freq_hz*PERIOD
     TARGET_POS = np.zeros((NUM_WP, 3))
-
+    print(path_smooth)
 
     interp_func = interpolate.interp1d(
         np.linspace(0, 1, num=len(path_smooth)),
@@ -124,12 +136,12 @@ def run(
 
 
     #### Initialize the logger #################################
-    # logger = Logger(logging_freq_hz=control_freq_hz,
-    #                 num_drones=1,
-    #                 duration_sec=duration_sec,
-    #                 output_folder=output_folder,
-    #                 colab=colab
-    #                 )
+    logger = Logger(logging_freq_hz=control_freq_hz,
+                    num_drones=1,
+                    duration_sec=duration_sec,
+                    output_folder=output_folder,
+                    colab=colab
+                    )
 
     #### Initialize the controllers ############################
     ctrl = DSLPIDControl(drone_model=drone)
@@ -155,11 +167,11 @@ def run(
         wp_counter = (wp_counter + 1) if wp_counter < (NUM_WP - 1) else 0
 
         #### Log the simulation ####################################
-        # logger.log(drone=0,
-        #             timestamp=i/env.CTRL_FREQ,
-        #             state=obs[0],
-        #             control=np.hstack([TARGET_POS[wp_counter], np.zeros(9)])
-        #             )
+        logger.log(drone=0,
+                    timestamp=i/env.CTRL_FREQ,
+                    state=obs[0],
+                    control=np.hstack([TARGET_POS[wp_counter], np.zeros(9)])
+                    )
 
         #### Printout ##############################################
         env.render()
@@ -172,8 +184,8 @@ def run(
     env.close()
 
     #### Save the simulation results ###########################
-    # logger.save()
-    # logger.save_as_csv("dw") # Optional CSV save
+    logger.save()
+    logger.save_as_csv("dw") # Optional CSV save
 
     #### Plot the simulation results ###########################
     # if plot:
