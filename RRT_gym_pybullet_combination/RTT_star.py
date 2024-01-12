@@ -494,19 +494,29 @@ def plot(G, obstacles, path=None, informed_ellipsoid=None):
     lc = Line3DCollection(lines, colors='green', linewidths=2)
     ax.add_collection(lc)
 
-    if path is not None:
-        paths = [(path[i], path[i+1]) for i in range(len(path)-1)]
-        lc2 = Line3DCollection(paths, colors='blue', linewidths=3)
-        ax.add_collection(lc2)
-
     # Plot final ellipsoid if provided
     if informed_ellipsoid is not None:
         center, x_axis, x_radius, y_radius, z_radius = informed_ellipsoid
-        u = np.linspace(0, 2 * np.pi, 100)
-        v = np.linspace(0, np.pi, 100)
-        x = center[0] + x_radius * np.outer(np.cos(u), np.sin(v))
-        y = center[1] + y_radius * np.outer(np.sin(u), np.sin(v))
-        z = center[2] + z_radius * np.outer(np.ones(np.size(u)), np.cos(v))
+        phi = np.linspace(0, 2 * np.pi, 100)
+        theta = np.linspace(0, np.pi, 100)
+        phi, theta = np.meshgrid(phi, theta)
+
+        # Convert spherical coordinates to Cartesian coordinates
+        x = x_radius * np.sin(theta) * np.cos(phi)
+        y = y_radius * np.sin(theta) * np.sin(phi)
+        z = z_radius * np.cos(theta)
+
+        # Rotate the ellipsoid to align with the x-axis
+        rotation_matrix = G.rotationMatrixFromVector(np.array([1, 0, 0]), x_axis)
+        rotated_coords = np.dot(rotation_matrix, np.array([x.flatten(), y.flatten(), z.flatten()]))
+
+        # Translate the rotated ellipsoid to the informed set center
+        x, y, z = rotated_coords + center[:, np.newaxis]
+
+        x = x.reshape(100, 100)
+        y = y.reshape(100, 100)
+        z = z.reshape(100, 100)
+
         ax.plot_surface(x, y, z, color='red', alpha=0.2)
 
     ax.autoscale()
