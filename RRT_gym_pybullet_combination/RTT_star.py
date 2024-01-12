@@ -9,48 +9,57 @@ import numpy as np
 import math
 from random import random
 import matplotlib.pyplot as plt
-from matplotlib import collections  as mc
 from collections import deque
 from mpl_toolkits.mplot3d.art3d import Line3DCollection
-import matplotlib
 import xml.etree.ElementTree as ET
 
+
 class Line():
-    ''' Define line '''
+    # Define a 3D line segment
     def __init__(self, p0, p1):
+        # Initialize line with two points
         self.p = np.array(p0)
         self.dirn = np.array(p1) - np.array(p0)
         self.dist = np.linalg.norm(self.dirn)
-        self.dirn /= self.dist # normalize
+        self.dirn /= self.dist  # Normalize direction vector
 
     def path(self, t):
+        # Parametric representation of the line at time t
         return self.p + t * self.dirn
 
 
+# Check line-sphere (circle) intersection
 def Intersection(line, center, radius):
-    ''' Check line-sphere (circle) intersection '''
+    # Check for intersection between a line segment and a sphere (circle)
+    # Quadratic equation coefficients
     a = np.dot(line.dirn, line.dirn)
     b = 2 * np.dot(line.dirn, line.p - center)
     c = np.dot(line.p - center, line.p - center) - radius * radius
 
+    # Discriminant to check for real roots
     discriminant = b * b - 4 * a * c
+
+    # If discriminant is negative, no intersection
     if discriminant < 0:
         return False
 
-    t1 = (-b + np.sqrt(discriminant)) / (2 * a);
-    t2 = (-b - np.sqrt(discriminant)) / (2 * a);
+    # Calculate intersection parameters
+    t1 = (-b + np.sqrt(discriminant)) / (2 * a)
+    t2 = (-b - np.sqrt(discriminant)) / (2 * a)
 
+    # Check if intersection occurs within the line segment
     if (t1 < 0 and t2 < 0) or (t1 > line.dist and t2 > line.dist):
         return False
 
     return True
 
 
-
+# Calculate Euclidean distance between two points
 def distance(p1, p2):
     return np.linalg.norm(np.array(p1) - np.array(p2))
 
 
+# Check if a point is inside any obstacle
 def isInObstacle(vex, obstacles):
     for obs in obstacles:
         if distance(obs[:3], vex) < obs[3]:
@@ -58,6 +67,7 @@ def isInObstacle(vex, obstacles):
     return False
 
 
+# Check if a line segment intersects with any obstacle
 def isThruObstacle(line, obstacles):
     for obs in obstacles:
         if Intersection(line, obs[:3], obs[3]):
@@ -65,6 +75,7 @@ def isThruObstacle(line, obstacles):
     return False
 
 
+# Find the nearest vertex in the graph to a given point
 def nearest(G, vex, obstacles):
     Nvex = None
     Nidx = None
@@ -72,10 +83,15 @@ def nearest(G, vex, obstacles):
 
     for idx, v in enumerate(G.vertices):
         line = Line(v, vex)
+
+        # Skip if the line intersects with any obstacle
         if isThruObstacle(line, obstacles):
             continue
 
+        # Calculate distance from the current vertex to the given point
         dist = distance(v, vex)
+
+        # Update nearest vertex information if a closer vertex is found
         if dist < minDist:
             minDist = dist
             Nidx = idx
@@ -84,54 +100,67 @@ def nearest(G, vex, obstacles):
     return Nvex, Nidx
 
 
+# Generate a new vertex given a random vertex, a nearby vertex, and a step size
 def newVertex(randvex, nearvex, stepSize):
+    # Calculate the direction vector from the nearby vertex to the random vertex
     dirn = np.array(randvex) - np.array(nearvex)
     length = np.linalg.norm(dirn)
-    dirn = (dirn / length) * min (stepSize, length)
 
-    newvex = (nearvex[0]+dirn[0], nearvex[1]+dirn[1], nearvex[2]+dirn[2])
+    # Normalize the direction vector and scale it by the minimum of stepSize and length
+    dirn = (dirn / length) * min(stepSize, length)
+
+    # Calculate the new vertex coordinates by adding the scaled direction vector to the nearby vertex
+    newvex = (nearvex[0] + dirn[0], nearvex[1] + dirn[1], nearvex[2] + dirn[2])
     return newvex
 
 
+# Define the search window based on the start and end positions
 def window(startpos, endpos):
-    ''' Define seach window - 2 times of start to end rectangle'''
+    # Calculate width, height, and depth of the window
     width = endpos[0] - startpos[0]
     height = endpos[1] - startpos[1]
     depth = endpos[2] - startpos[2]
+
+    # Calculate the window position based on the center of the start to end rectangle
     winx = startpos[0] - (width / 2.)
     winy = startpos[1] - (height / 2.)
     winz = startpos[2] - (depth / 2.)
     return winx, winy, winz, width, height, depth
 
 
+# Check if a given position is inside the search window
 def isInWindow(pos, winx, winy, winz, width, height, depth):
-    ''' Restrict new vertex insides search window'''
-    if winx < pos[0] < winx+width and \
-        winy < pos[1] < winy+height and \
-        winz < pos[2] < winz+depth:
+    if winx < pos[0] < winx + width and \
+            winy < pos[1] < winy + height and \
+            winz < pos[2] < winz + depth:
         return True
     else:
         return False
 
 
+# Define a graph structure for RRT*
 class Graph:
-    ''' Define graph '''
     def __init__(self, startpos, endpos):
+        # Initialize graph with start and end positions
         self.startpos = startpos
         self.endpos = endpos
 
+        # Initialize lists and dictionaries for vertices, edges, and related information
         self.vertices = [startpos]
         self.edges = []
         self.success = False
 
-        self.vex2idx = {startpos:0}
-        self.neighbors = {0:[]}
-        self.distances = {0:0.}
+        # Vertex to index mapping and neighbor information
+        self.vex2idx = {startpos: 0}
+        self.neighbors = {0: []}
+        self.distances = {0: 0.}
 
+        # Calculate the differences between start and end positions for informed set generation
         self.sx = endpos[0] - startpos[0]
         self.sy = endpos[1] - startpos[1]
         self.sz = endpos[2] - startpos[2]
 
+    # Add a new vertex to the graph
     def add_vex(self, pos):
         try:
             idx = self.vex2idx[pos]
@@ -142,12 +171,13 @@ class Graph:
             self.neighbors[idx] = []
         return idx
 
+    # Add a new edge to the graph
     def add_edge(self, idx1, idx2, cost):
         self.edges.append((idx1, idx2))
         self.neighbors[idx1].append((idx2, cost))
         self.neighbors[idx2].append((idx1, cost))
 
-
+    # Generate a random position within a rectangular search window
     def randomPosition(self):
         rx = random()
         ry = random()
@@ -158,8 +188,8 @@ class Graph:
         posz = self.startpos[2] - (self.sz / 2.) + rz * self.sz * 2
         return posx, posy, posz
 
+    # Generate a random position within an informed set (ellipsoid)
     def randomPositionWithinInformedSet(self, center, x_axis, x_radius, y_radius, z_radius):
-        ''' Generate a random position within the informed set (ellipsoid) '''
         # Generate random spherical coordinates
         phi = 2 * np.pi * np.random.uniform(0, 1)
         theta = np.arccos(2 * np.random.uniform(0, 1) - 1)
@@ -178,14 +208,14 @@ class Graph:
 
         return tuple(position)
 
+    # Calculate the rotation matrix from a vector
     def rotationMatrixFromVector(self, v1, v2):
-        ''' Calculate the rotation matrix that rotates v1 to v2 '''
         axis = np.cross(v1, v2)
         angle = np.arccos(np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2)))
         return self.rotationMatrixFromAxisAngle(axis, angle)
 
+    # Calculate the rotation matrix from an axis and an angle
     def rotationMatrixFromAxisAngle(self, axis, angle):
-        ''' Calculate the rotation matrix from an axis and an angle '''
         axis /= np.linalg.norm(axis)
         a = np.cos(angle / 2.0)
         b, c, d = -axis * np.sin(angle / 2.0)
@@ -193,60 +223,81 @@ class Graph:
                          [2 * (b*c + a*d), a**2 + c**2 - b**2 - d**2, 2 * (c*d - a*b)],
                          [2 * (b*d - a*c), 2 * (c*d + a*b), a**2 + d**2 - b**2 - c**2]])
 
+
+# RRT algorithm
 def RRT(startpos, endpos, obstacles, n_iter, radius, stepSize):
-    ''' RRT algorithm '''
+
+    # Initialize the graph
     G = Graph(startpos, endpos)
 
+    # Main loop for RRT
     for _ in range(n_iter):
+        # Generate a random position
         randvex = G.randomPosition()
+
+        # Skip if the random position is inside an obstacle
         if isInObstacle(randvex, obstacles):
             continue
 
+        # Find the nearest vertex in the graph
         nearvex, nearidx = nearest(G, randvex, obstacles)
         if nearvex is None:
             continue
 
+        # Generate a new vertex based on the random and nearest vertices
         newvex = newVertex(randvex, nearvex, stepSize)
 
+        # Add the new vertex to the graph and update edge information
         newidx = G.add_vex(newvex)
         dist = distance(newvex, nearvex)
         G.add_edge(newidx, nearidx, dist)
 
+        # Check if the new vertex is close to the goal
         dist = distance(newvex, G.endpos)
         if dist < 2 * radius:
             endidx = G.add_vex(G.endpos)
             G.add_edge(newidx, endidx, dist)
             G.success = True
-            #print('success')
+            # print('success')
             # break
+
     return G
 
 
+# RRT* algorithm
 def RRT_star(startpos, endpos, obstacles, n_iter, radius, stepSize):
-    ''' RRT star algorithm '''
+
+    # Initialize the graph
     G = Graph(startpos, endpos)
 
+    # Main loop for RRT*
     for _ in range(n_iter):
+        # Generate a random position
         randvex = G.randomPosition()
         ground_threshold = 0
+
         # Ensure that the random position does not go below the ground
         randvex = (randvex[0], randvex[1], max(randvex[2], ground_threshold))
 
+        # Skip if the random position is inside an obstacle
         if isInObstacle(randvex, obstacles):
             continue
 
+        # Find the nearest vertex in the graph
         nearvex, nearidx = nearest(G, randvex, obstacles)
         if nearvex is None:
             continue
 
+        # Generate a new vertex based on the random and nearest vertices
         newvex = newVertex(randvex, nearvex, stepSize)
 
+        # Add the new vertex to the graph and update edge information
         newidx = G.add_vex(newvex)
         dist = distance(newvex, nearvex)
         G.add_edge(newidx, nearidx, dist)
         G.distances[newidx] = G.distances[nearidx] + dist
 
-        # update nearby vertices distance (if shorter) #Check if the new vertex allows others to have a shorter distance
+        # Update nearby vertices distances (if shorter)
         for vex in G.vertices:
             if vex == newvex:
                 continue
@@ -264,20 +315,25 @@ def RRT_star(startpos, endpos, obstacles, n_iter, radius, stepSize):
                 G.add_edge(idx, newidx, dist)
                 G.distances[idx] = G.distances[newidx] + dist
 
+        # Check if the new vertex is close to the goal
         dist = distance(newvex, G.endpos)
         if dist < 2 * radius:
             endidx = G.add_vex(G.endpos)
             G.add_edge(newidx, endidx, dist)
+
             try:
-                G.distances[endidx] = min(G.distances[endidx], G.distances[newidx]+dist)
+                G.distances[endidx] = min(G.distances[endidx], G.distances[newidx] + dist)
             except:
-                G.distances[endidx] = G.distances[newidx]+dist
+                G.distances[endidx] = G.distances[newidx] + dist
 
             G.success = True
             print('success')
             break
+
     return G
 
+
+# Initialize the informed set
 def initialize_informed_set(startpos, endpos, initial_radius_fraction):
     center = np.array([(start + end) / 2.0 for start, end in zip(startpos, endpos)])
     x_axis = np.array(endpos) - np.array(startpos)
@@ -286,12 +342,15 @@ def initialize_informed_set(startpos, endpos, initial_radius_fraction):
 
     return center, x_axis, initial_radius, initial_radius, initial_radius
 
+
+# Check if a point is inside the ellipsoid
 def point_in_ellipsoid(point, a, b, c):
-    # Check if a point is inside the ellipsoid
     x, y, z = point
     equation_result = (x**2 / a**2) + (y**2 / b**2) + (z**2 / c**2)
     return equation_result <= 1
 
+
+# Update the informed set based on the graph
 def update_informed_set(graph,
                         informed_set_center,
                         informed_set_x_axis,
@@ -306,6 +365,7 @@ def update_informed_set(graph,
                                                     informed_set_y_radius,
                                                     informed_set_z_radius)
 
+    # Find the best path using Dijkstra's algorithm
     best_path = dijkstra(graph)
 
     # Check and reduce y-radius
@@ -332,9 +392,10 @@ def update_informed_set(graph,
         else:
             break  # Exit loop if any point falls outside the ellipsoid
 
-
     return center, x_axis, x_radius, y_radius, z_radius
 
+
+# RRT* Informed algorithm
 def RRT_star_informed(startpos, endpos, obstacles, n_iter, radius, stepSize, initial_radius_fraction):
     G = Graph(startpos, endpos)
 
@@ -346,7 +407,7 @@ def RRT_star_informed(startpos, endpos, obstacles, n_iter, radius, stepSize, ini
      informed_set_x_radius,
      informed_set_y_radius,
      informed_set_z_radius) = initialize_informed_set(startpos, endpos, initial_radius_fraction)
-    print(informed_set_x_radius,informed_set_y_radius,informed_set_z_radius)
+    print(informed_set_x_radius, informed_set_y_radius, informed_set_z_radius)
 
     for _ in range(n_iter):
         # Biased Sampling towards Informed Set
@@ -426,14 +487,11 @@ def RRT_star_informed(startpos, endpos, obstacles, n_iter, radius, stepSize, ini
     return G, last_ellipsoid
 
 
+# Dijkstra algorithm for finding shortest path
 def dijkstra(G):
-    '''
-    Dijkstra algorithm for finding shortest path from start position to end.
-    '''
     srcIdx = G.vex2idx[G.startpos]
     dstIdx = G.vex2idx[G.endpos]
 
-    # build dijkstra
     nodes = list(G.neighbors.keys())
     dist = {node: float('inf') for node in nodes}
     prev = {node: None for node in nodes}
@@ -451,7 +509,6 @@ def dijkstra(G):
                 dist[neighbor] = newCost
                 prev[neighbor] = curNode
 
-    # retrieve path
     path = deque()
     curNode = dstIdx
     while prev[curNode] is not None:
@@ -461,12 +518,8 @@ def dijkstra(G):
     return list(path)
 
 
-
+# Plot function for RRT visualization
 def plot(G, obstacles, path=None, informed_ellipsoid=None):
-    '''
-    Plot RRT, obstacles and shortest path
-    '''
-    #matplotlib.use('Qt5Agg')
 
     px = [x for x, y, z in G.vertices]
     py = [y for x, y, z in G.vertices]
@@ -500,8 +553,6 @@ def plot(G, obstacles, path=None, informed_ellipsoid=None):
     lc = Line3DCollection(lines, colors='green', linewidths=2)
     ax.add_collection(lc)
 
-
-
     # Plot final ellipsoid if provided
     if informed_ellipsoid is not None:
         center, x_axis, x_radius, y_radius, z_radius = informed_ellipsoid
@@ -532,8 +583,8 @@ def plot(G, obstacles, path=None, informed_ellipsoid=None):
     plt.show()
 
 
+# RRT path search function
 def pathSearch(startpos, endpos, obstacles, n_iter, radius, stepSize):
-    # G = RRT_star_informed(startpos, endpos, obstacles, n_iter, radius, stepSize)
     G = RRT_star(startpos, endpos, obstacles, n_iter, radius, stepSize)
 
     if G.success:
@@ -545,6 +596,7 @@ def pathSearch(startpos, endpos, obstacles, n_iter, radius, stepSize):
         return None
 
 
+# Parse URDF function for extracting obstacle information
 def parse_urdf(urdf_file):
     # Load the URDF file
     tree = ET.parse(urdf_file)
@@ -595,8 +647,8 @@ def parse_urdf(urdf_file):
     return matrix
 
 
+# Retrieve obstacle information from all URDF files in the "obstacles" folder
 def all_urdf():
-
 
     current_directory = os.getcwd()
 

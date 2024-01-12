@@ -2,19 +2,18 @@ import os
 import math
 import random
 
+
+# Function to generate URDF content for a stack of cubes
 def generate_pillar_urdf_file(num_cubes, start_position=None):
-
-
     urdf = '<?xml version="1.0"?>\n'
     urdf += '<robot name="stacked_cubes">\n'
 
     # Set random values for yaw and pitch between 0 and 90 degrees
     roll = 0  # in degrees
-    pitch = random.uniform(0, 90)
+    pitch = random.uniform(0, 90)  # in degrees
     yaw = random.uniform(0, 360)  # in degrees
 
     for i in range(num_cubes):
-
 
         # Calculate the offset based on the orientation
         xp = 0.3 * math.sin(math.radians(pitch))
@@ -61,9 +60,9 @@ def generate_pillar_urdf_file(num_cubes, start_position=None):
     urdf += '</robot>\n'
 
     return urdf
-    # with open(output_file, "w") as urdf_file:
-    #     urdf_file.write(urdf)
 
+
+# Function to generate multiple URDF files for stacks of cubes
 def generate_multiple_pillar_urdf_files(num_files, num_cubes, output_directory):
     for i in range(num_files):
         start_position = (random.uniform(0, 5), random.uniform(0, 5))

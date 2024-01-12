@@ -1,8 +1,8 @@
-import sys
 import random
-import math
 import os
 
+
+# Function to generate URDF content for random rubble
 def generate_urdf_content(num_shapes, position_bounds, size_bounds, orientation_bounds):
     print("position_bounds:", position_bounds)
     print("size_bounds:", size_bounds)
@@ -80,6 +80,8 @@ def generate_urdf_content(num_shapes, position_bounds, size_bounds, orientation_
 
     return urdf
 
+
+# Function to generate URDF files for multiple runs
 def generate_urdf_files(num_runs, num_shapes, size_bounds, orientation_bounds, output_directory):
     for run in range(num_runs):
         # Generate random position bounds between 0 and 5 for each run
@@ -94,6 +96,7 @@ def generate_urdf_files(num_runs, num_shapes, size_bounds, orientation_bounds, o
         # Write the URDF content to the file
         with open(output_path, "w") as urdf_file:
             urdf_file.write(urdf_content)
+
 
 if __name__ == "__main__":
     # Set the common values for other parameters
