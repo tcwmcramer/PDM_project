@@ -334,7 +334,7 @@ def update_informed_set(graph,
 
     return center, x_axis, x_radius, y_radius, z_radius
 
-def RRT_star_informed(startpos, endpos, obstacles, n_iter, radius, stepSize, initial_radius_fraction):
+def RRT_star_informed(startpos, endpos, obstacles, n_iter, radius, stepSize, initial_radius_fraction=2.5):
     G = Graph(startpos, endpos)
 
     # Initialize the ellipsoid variables
@@ -422,7 +422,7 @@ def RRT_star_informed(startpos, endpos, obstacles, n_iter, radius, stepSize, ini
 
             G.success = True
             print('success')
-    return G, last_ellipsoid
+    return G
 
 
 def dijkstra(G):
