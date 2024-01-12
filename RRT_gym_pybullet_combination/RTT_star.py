@@ -569,12 +569,9 @@ def parse_urdf(urdf_file):
                 elif collision_geometry.tag == 'box':
                     # Calculate the radius for the sphere around the box
                     size = [float(s) for s in collision_geometry.get('size').split()]
-                    # Sort the size list in descending order
-                    sorted_size = sorted(size, reverse=True)
-                    # Take the two largest values
-                    largest_values = sorted_size[:2]
-                    # Calculate the diagonal length using the two largest values
-                    diagonal_length = math.sqrt(sum([v ** 2 for v in largest_values]))
+
+                    # Calculate the distance to the corners using all three sizes
+                    diagonal_length = math.sqrt(sum([v ** 2 for v in size]))
                     radius_collision = diagonal_length / 2.0
                 else:
                     # Handle other geometry types if necessary
