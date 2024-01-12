@@ -490,9 +490,16 @@ def plot(G, obstacles, path=None, informed_ellipsoid=None):
     ax.scatter(G.startpos[0], G.startpos[1], G.startpos[2], c='black', marker='s')
     ax.scatter(G.endpos[0], G.endpos[1], G.endpos[2], c='black', marker='s')
 
+    if path is not None:
+        paths = [(path[i], path[i+1]) for i in range(len(path)-1)]
+        lc2 = Line3DCollection(paths, colors='red', linewidths=5)
+        ax.add_collection(lc2)
+
     lines = [(G.vertices[edge[0]], G.vertices[edge[1]]) for edge in G.edges]
     lc = Line3DCollection(lines, colors='green', linewidths=2)
     ax.add_collection(lc)
+
+
 
     # Plot final ellipsoid if provided
     if informed_ellipsoid is not None:
@@ -525,8 +532,8 @@ def plot(G, obstacles, path=None, informed_ellipsoid=None):
 
 
 def pathSearch(startpos, endpos, obstacles, n_iter, radius, stepSize):
-    G = RRT_star_informed(startpos, endpos, obstacles, n_iter, radius, stepSize)
-    # G = RRT_star(startpos, endpos, obstacles, n_iter, radius, stepSize)
+    # G = RRT_star_informed(startpos, endpos, obstacles, n_iter, radius, stepSize)
+    G = RRT_star(startpos, endpos, obstacles, n_iter, radius, stepSize)
 
     if G.success:
         path = dijkstra(G)
@@ -620,12 +627,13 @@ if __name__ == '__main__':
     obstacles = all_urdf()
     last_ellipsoid = None
     radius = 1.5
-    n_iter = 200
+    n_iter = 1000
     stepSize = 0.7
 
-    # G = RRT_star(startpos, endpos, obstacles, n_iter, radius, stepSize)
+    G = RRT_star(startpos, endpos, obstacles, n_iter, radius, stepSize)
     # G = RRT(startpos, endpos, obstacles, n_iter, radius, stepSize)
-    G, last_ellipsoid = RRT_star_informed(startpos, endpos, obstacles, n_iter, radius, stepSize, initial_radius_fraction=2.5)
+    #G, last_ellipsoid = RRT_star_informed(startpos, endpos, obstacles, n_iter, radius, stepSize, initial_radius_fraction=2.5)
+
     if G.success:
         path = dijkstra(G)
         print(path)
