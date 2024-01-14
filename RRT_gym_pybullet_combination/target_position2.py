@@ -139,6 +139,18 @@ def run(
     # print(TARGET_POS)
     # TARGET_POS = TARGET_POS[:NUM_WP]
 
+    def compute_distance(positions):
+        distance = 0.0
+        for i in range(1, len(positions)):
+            delta_position = positions[i] - positions[i - 1]
+            distance += np.linalg.norm(delta_position)
+        return distance
+
+    # Assuming TARGET_POS is a NumPy array of shape (NUM_WP, 3)
+    flown_distance = compute_distance(TARGET_POS)
+
+    print("Total Flown Distance::::::::::::::::::", flown_distance)
+
     wp_counter = 0  #As it's only a single drone, no need to keep multiple counters
 
 

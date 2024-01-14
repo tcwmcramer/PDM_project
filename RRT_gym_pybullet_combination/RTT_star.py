@@ -275,7 +275,7 @@ def RRT_star(startpos, endpos, obstacles, n_iter, radius, stepSize):
 
             G.success = True
             print('success')
-            break
+
     return G
 
 def initialize_informed_set(startpos, endpos, initial_radius_fraction):
@@ -423,7 +423,7 @@ def RRT_star_informed(startpos, endpos, obstacles, n_iter, radius, stepSize, ini
 
             G.success = True
             print('success')
-    return G, last_ellipsoid
+    return G
 
 
 def dijkstra(G):
@@ -533,8 +533,8 @@ def plot(G, obstacles, path=None, informed_ellipsoid=None):
 
 
 def pathSearch(startpos, endpos, obstacles, n_iter, radius, stepSize):
-    # G = RRT_star_informed(startpos, endpos, obstacles, n_iter, radius, stepSize)
-    G = RRT_star(startpos, endpos, obstacles, n_iter, radius, stepSize)
+    G = RRT_star_informed(startpos, endpos, obstacles, n_iter, radius, stepSize, initial_radius_fraction=2.5)
+    #G = RRT_star(startpos, endpos, obstacles, n_iter, radius, stepSize)
 
     if G.success:
         path = dijkstra(G)

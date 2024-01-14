@@ -2,7 +2,7 @@ import numpy as np
 from scipy.interpolate import CubicSpline
 import matplotlib.pyplot as plt
 from RRT_gym_pybullet_combination.RTT_star import pathSearch
-
+from RTT_star import all_urdf
 
 def smooth_path(waypoints, num_points=100):
     # Transpose to have coordinates in separate arrays
@@ -45,11 +45,13 @@ def plot_smoothed_path(waypoints, path_smooth, obstacles):
     plt.show()
 
 if __name__ == '__main__':
-    startpos = (0., 0., 0.)
-    endpos = (5., 5., 0.)
-    obstacles = [(1., 1., 1.), (2., 2., 2.)]
-    n_iter = 200
+    startpos = (5., 5., 3.)
+    endpos = (0., 0., 0.)
+    # urdf_path = "../RRT_gym_pybullet_combination/obstacles/random_rubble_1.urdf"  # Update with your actual URDF file path
+    obstacles = all_urdf()
+    last_ellipsoid = None
     radius = 1.5
+    n_iter = 200
     stepSize = 0.7
 
     # Example usage with an unknown number of waypoints
@@ -58,4 +60,17 @@ if __name__ == '__main__':
 
 
     path_smooth = smooth_path(waypoints)
-    plot_smoothed_path(waypoints, path_smooth)
+
+    def compute_distance(positions):
+        distance = 0.0
+        for i in range(1, len(positions)):
+            delta_position = positions[i] - positions[i - 1]
+            distance += np.linalg.norm(delta_position)
+        return distance
+
+    # Assuming TARGET_POS is a NumPy array of shape (NUM_WP, 3)
+    flown_distance = compute_distance(path_smooth)
+
+    print("Total Flown Distance:", flown_distance)
+
+    plot_smoothed_path(waypoints, path_smooth, obstacles)
