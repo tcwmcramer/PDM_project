@@ -17,9 +17,9 @@ from gym_pybullet_drones.utils.utils import sync, str2bool
 from gym_pybullet_drones.utils.enums import DroneModel, Physics
 from gym_pybullet_drones.control.DSLPIDControl import DSLPIDControl
 
-from RRT_gym_pybullet_combination.aviaries.CustomAviary import CustomAviary
-from RRT_gym_pybullet_combination.random_rubble_gen import generate_urdf_files
-from RRT_gym_pybullet_combination.pillars_gen import generate_multiple_pillar_urdf_files
+from aviaries.CustomAviary import CustomAviary
+from random_rubble_gen import generate_urdf_files
+from pillars_gen import generate_multiple_pillar_urdf_files
 
 # Constants
 DEFAULT_DRONE = DroneModel('cf2p')

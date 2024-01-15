@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.interpolate import CubicSpline
 import matplotlib.pyplot as plt
-from RRT_gym_pybullet_combination.RTT_star import pathSearch
+from RTT_star import pathSearch
 
 
 # Function to smooth a path using cubic spline interpolation
