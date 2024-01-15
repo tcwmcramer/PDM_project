@@ -2,7 +2,7 @@
 
 # RRT-gym-pybullet-combination
 
-This project demonstrates the integration of Rapidly Exploring Random Trees (RRT) path planning algorithm into a PyBullet environment using a custom Aviary. The simulated environment includes multiple randomly generated obstacles and flying waypoints for a drone to navigate through. The drone's trajectory is controlled using DSLPIDControl.
+This project demonstrates the integration of an informed Rapidly Exploring Random Trees (RRT) path planning algorithm into a PyBullet environment using a custom Aviary. The simulated environment includes multiple randomly generated obstacles and flying waypoints for a drone to navigate through. The drone's trajectory is controlled using DSLPIDControl.
 
 ## Table of Contents
 
@@ -29,6 +29,8 @@ The code has undergone testing on both MacOS and Windows. To run the code, ensur
 
 ## Installation
 
+The following is taken from pybullet-drones to complete the installation and clone the repository on a chosen local directory.
+
 ```bash
 git clone https://github.com/utiasDSL/gym-pybullet-drones.git
 cd gym-pybullet-drones/
@@ -40,6 +42,12 @@ pip3 install --upgrade pip
 pip3 install -e . # if needed, `sudo apt install build-essential` to install `gcc` and build `pybullet`
 ```
 
+The following is needed to clone this repository onto the chosen local directory
+
+```bash
+cd .. 
+git clone https://github.com/tcwmcramer/PDM_project.git
+```
 
 ## Code Explanation
 
