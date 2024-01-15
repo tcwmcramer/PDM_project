@@ -16,7 +16,7 @@ This project demonstrates the integration of an informed Rapidly Exploring Rando
 
 ## Introduction
 
-The project combines path planning algorithms, PyBullet simulation, and drone control to showcase a simulated environment with dynamic obstacles and trajectory planning for a drone. The main script, `target_position2.py`, initializes the environment, generates random obstacles, plans waypoints, and simulates drone navigation.
+The project combines path planning algorithms, PyBullet simulation, and drone control to showcase a simulated environment with dynamic obstacles and trajectory planning for a drone. The main script, `final_sim_random.py`, initializes the environment, generates random obstacles, plans waypoints, and simulates drone navigation.
 
 ## Requirements
 
@@ -47,13 +47,15 @@ The following is needed to clone this repository onto the chosen local directory
 ```bash
 cd .. 
 git clone https://github.com/tcwmcramer/PDM_project.git
+cd PDM_project/RRT_gym_pybullet_combination
+$ python ./final_sim_random.py
 ```
 
 ## Code Explanation
 
 ### File Structure
 
-- `target_position2.py`: Main script orchestrating the simulation, obstacle generation, and drone control.
+- `final_sim_random.py`: Main script orchestrating the simulation, obstacle generation, and drone control.
 - `Smoothpath.py`: Contains functions for smoothing paths using cubic spline interpolation.
 - `RTT_star.py`: Implements the (informed) Rapidly Exploring Random Trees (RRT) path planning algorithm.
 - `CustomAviary.py`: Custom PyBullet Aviary for drone simulation.
@@ -69,6 +71,6 @@ The code includes comments to explain key functions and sections, providing clar
 This project utilizes the following libraries and existing algorithms:
 
 - [PyBullet](https://pybullet.org/): A physics engine for simulating robot dynamics.
-- [gym-pybullet-drones](https://utiasdsl.github.io/gym-pybullet-drones/): PyBullet Gymnasium environments for single and multi-agent reinforcement learning of quadcopter control
-- [RRT_star.py](RRT_star.py): Implements the Rapidly Exploring Random Trees (RRT) algorithm for path planning from ..... .
+- [gym-pybullet-drones](https://utiasdsl.github.io/gym-pybullet-drones/): PyBullet Gymnasium environments for single and multi-agent reinforcement learning of quadcopter control.
+- [RRT_star.py](https://gist.github.com/fanjin-z/58e5eaa27a3dc004c3526ea82a92de80): Based on the Rapidly Exploring Random Trees (RRT) algorithm for path planning from Fanjing Zeng 2019 under MIT License.
 
